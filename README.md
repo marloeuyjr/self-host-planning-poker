@@ -1,5 +1,15 @@
 # Self-host Planning Poker
 
+> **Fork notice:** This is a maintained fork of
+> [axeleroy/self-host-planning-poker](https://github.com/axeleroy/self-host-planning-poker)
+> (MIT). It is deployed at <https://poker.marloeuy.com> as part of
+> <https://github.com/marloeuyjr/dpro-poker>. Versions `v1.3.0` and later
+> are produced by this fork; `v1.2.1` and earlier are from upstream.
+>
+> Built image: `ghcr.io/marloeuyjr/self-host-planning-poker`.
+
+---
+
 A hassle-free Planning Poker application to deploy on your NAS.
 
 [![Docker Hub](https://img.shields.io/docker/v/axeleroy/self-host-planning-poker?sort=semver&logo=docker)](https://hub.docker.com/r/axeleroy/self-host-planning-poker/tags)
