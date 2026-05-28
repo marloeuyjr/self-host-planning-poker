@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Driftsprognoser Planning Poker">
+  <title>Driftsprognoser Planning Poker</title>
+
+  <!-- Dark slate background -->
+  <rect width="512" height="512" rx="112" fill="#0F172A"/>
+
+  <!-- Forecast trend line: dashed, ascending left→right, behind the cards.
+       The team's velocity prediction. -->
+  <g stroke="#475569" stroke-width="11" stroke-linecap="round" fill="none">
+    <path d="M 52 248 L 188 220 L 296 144 L 436 70" stroke-dasharray="18 14"/>
+    <!-- Arrow tip pointing forward (forecasting forward) -->
+    <path d="M 436 70 L 410 78 M 436 70 L 422 96"/>
+  </g>
+
+  <!-- Fanned hand of three planning-poker cards (1, 3, 5 — Fibonacci).
+       Rotated around a shared pivot below the canvas to make the cards
+       splay outward like a hand the scrum master is holding. -->
+
+  <!-- Back-left card "1" (emerald-500) -->
+  <g transform="rotate(-22 256 580)">
+    <rect x="196" y="170" width="120" height="180" rx="14" fill="#10B981"/>
+    <text x="216" y="216" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif" font-weight="800" font-size="44" fill="#0F172A">1</text>
+  </g>
+
+  <!-- Back-right card "5" (emerald-300) -->
+  <g transform="rotate(22 256 580)">
+    <rect x="196" y="170" width="120" height="180" rx="14" fill="#6EE7B7"/>
+    <text x="216" y="216" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif" font-weight="800" font-size="44" fill="#0F172A">5</text>
+  </g>
+
+  <!-- Front-center card "3" (emerald-400) — slightly lifted to pop forward -->
+  <g>
+    <rect x="196" y="150" width="120" height="180" rx="14" fill="#34D399"/>
+    <text x="216" y="196" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif" font-weight="800" font-size="44" fill="#0F172A">3</text>
+  </g>
+</svg>
