@@ -3,7 +3,7 @@
     "game": "Im Projekt ist es eine \"Partie\" wie in einer \"Partie Schach\" und nicht wie in \"einem Partyspiel\"."
   },
   "navbar": {
-    "appTitle": "Self-Host Planning Poker",
+    "appTitle": "Driftsprognoser Planning Poker",
     "appIcon": "Anwendungssymbol",
     "homeLink": "Startseite",
     "playerInfo": {
