@@ -1,77 +1,251 @@
-/* You can add global styles to this file, and also import other style files */
+// =============================================================================
+// Driftsprognoser Planning Poker — Global Styles
+//
+// Brand: slate-900 + emerald accent.
+// References: Grafana panels, Linear command bar, k9s terminal UI.
+// Aesthetic: calm · operational · decisive.
+//
+// Order matters:
+//   1. Bootstrap functions (color helpers used in our overrides).
+//   2. Our SCSS variable overrides BEFORE the rest of Bootstrap imports.
+//   3. The rest of Bootstrap with our overrides applied.
+//   4. CSS custom properties for runtime use (theme-aware, dark-first).
+//   5. App-level component styles.
+// =============================================================================
 
-$primary: #198754;
-$enable-shadows: true;
+// 1 — Bootstrap functions only (needed by our color overrides below).
+@import "bootstrap/scss/functions";
+
+// 2 — Brand SCSS variables (Bootstrap reads with !default fallback).
+
+// Emerald accent — Tailwind 3 palette, our primary brand hue.
+$brand-emerald-300: #6EE7B7;
+$brand-emerald-400: #34D399;
+$brand-emerald-500: #10B981;
+$brand-emerald-600: #059669;
+$brand-emerald-700: #047857;
+
+// Slate surface — Tailwind 3 palette, the operational canvas.
+$brand-slate-050: #F8FAFC;
+$brand-slate-100: #F1F5F9;
+$brand-slate-200: #E2E8F0;
+$brand-slate-300: #CBD5E1;
+$brand-slate-400: #94A3B8;
+$brand-slate-500: #64748B;
+$brand-slate-600: #475569;
+$brand-slate-700: #334155;
+$brand-slate-800: #1E293B;
+$brand-slate-900: #0F172A;
+$brand-slate-950: #020617;
+
+// Bootstrap theme color overrides
+$primary:   $brand-emerald-500;
+$secondary: $brand-slate-500;
+$success:   $brand-emerald-500;
+$info:      #38BDF8;
+$warning:   #FBBF24;
+$danger:    #F87171;
+
+// Dark theme (the primary canvas)
+$body-bg-dark:              $brand-slate-900;
+$body-color-dark:           $brand-slate-100;
+$body-secondary-bg-dark:    $brand-slate-800;
+$body-secondary-color-dark: $brand-slate-400;
+$body-tertiary-bg-dark:     $brand-slate-800;
+$border-color-dark:         $brand-slate-700;
+
+// Light theme (courtesy mode)
+$body-bg:                $brand-slate-050;
+$body-color:             $brand-slate-900;
+$body-secondary-bg:      $brand-slate-100;
+$body-secondary-color:   $brand-slate-500;
+$body-tertiary-bg:       $brand-slate-100;
+$border-color:           $brand-slate-200;
+
+// Typography — Mona Sans + JetBrains Mono. Non-reflex picks.
+$font-family-sans-serif: "Mona Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+$font-family-monospace:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+$font-weight-base:       400;
+$headings-font-weight:   600;
+$line-height-base:       1.55;
+
+// Tighter border radii — operational, not friendly
+$border-radius-sm: 0.125rem;
+$border-radius:    0.25rem;
+$border-radius-lg: 0.375rem;
+$border-radius-xl: 0.5rem;
+
+// Effects we are turning OFF for the operational aesthetic
+$enable-shadows:    false;
+$enable-gradients:  false;
+$enable-rounded:    true;
+
+// Form focus ring — emerald, crisp
+$component-active-bg:        $brand-emerald-500;
+$component-active-color:     $brand-slate-900;
+$input-focus-border-color:   $brand-emerald-500;
+$input-focus-box-shadow:     0 0 0 0.15rem rgba($brand-emerald-500, 0.25);
+$input-btn-focus-color:      rgba($brand-emerald-500, 0.35);
+$input-btn-focus-box-shadow: 0 0 0 0.15rem $input-btn-focus-color;
+
+// Color mode strategy — prefers-color-scheme driven, dark-first
 $color-mode-type: media-query;
 
-/* Importing Bootstrap SCSS file. */
-@import 'bootstrap/scss/bootstrap';
+// 3 — The rest of Bootstrap with our overrides applied.
+@import "bootstrap/scss/bootstrap";
 
+// 4 — CSS custom properties for runtime use.
 :root {
-  --card-color: #{$green-500};
-  --navbar-bg-color: #{$green-400};
-  --navbar-border-bottom-color: #{$green-800};
-  --navbar-text-color: white;
-  --navbar-muted-color: $gray-400;
+  // Brand palette (theme-invariant)
+  --brand-emerald-300: #{$brand-emerald-300};
+  --brand-emerald-400: #{$brand-emerald-400};
+  --brand-emerald-500: #{$brand-emerald-500};
+  --brand-emerald-600: #{$brand-emerald-600};
+  --brand-emerald-700: #{$brand-emerald-700};
+
+  --brand-slate-050: #{$brand-slate-050};
+  --brand-slate-100: #{$brand-slate-100};
+  --brand-slate-200: #{$brand-slate-200};
+  --brand-slate-300: #{$brand-slate-300};
+  --brand-slate-400: #{$brand-slate-400};
+  --brand-slate-500: #{$brand-slate-500};
+  --brand-slate-600: #{$brand-slate-600};
+  --brand-slate-700: #{$brand-slate-700};
+  --brand-slate-800: #{$brand-slate-800};
+  --brand-slate-900: #{$brand-slate-900};
+  --brand-slate-950: #{$brand-slate-950};
+
+  // Semantic surface tokens — dark mode defaults (the primary canvas)
+  --brand-surface-1:        var(--brand-slate-900);  // primary background
+  --brand-surface-2:        var(--brand-slate-800);  // elevated panel (navbar, secondary regions)
+  --brand-surface-3:        var(--brand-slate-700);  // input bg, hover-tinted surface
+  --brand-hairline:         var(--brand-slate-700);
+  --brand-hairline-strong:  var(--brand-slate-600);
+  --brand-text-primary:     var(--brand-slate-100);
+  --brand-text-secondary:   var(--brand-slate-400);
+  --brand-text-muted:       var(--brand-slate-500);
+
+  --brand-card-bg:          var(--brand-slate-800);
+  --brand-card-fg:          var(--brand-slate-050);
+  --brand-card-empty-stroke: var(--brand-slate-600);
+
+  // Motion + signature
+  --brand-motion-fast: 120ms;
+  --brand-motion-base: 180ms;
+  --brand-motion-slow: 280ms;
+  --brand-motion-ease: cubic-bezier(0.22, 1, 0.36, 1); // ease-out-quart
+  --brand-dash-pattern: 8 6;
 }
 
-.bg-primary {
-  background-color: var(--navbar-bg-color) !important;
-  color: var(--navbar-text-color) !important;
-  .text-muted {
-    color: var(--navbar-muted-color) !important;
+@media (prefers-color-scheme: light) {
+  :root {
+    --brand-surface-1:        var(--brand-slate-050);
+    --brand-surface-2:        #ffffff;
+    --brand-surface-3:        var(--brand-slate-100);
+    --brand-hairline:         var(--brand-slate-200);
+    --brand-hairline-strong:  var(--brand-slate-300);
+    --brand-text-primary:     var(--brand-slate-900);
+    --brand-text-secondary:   var(--brand-slate-500);
+    --brand-text-muted:       var(--brand-slate-400);
+
+    --brand-card-bg:          #ffffff;
+    --brand-card-fg:          var(--brand-slate-900);
+    --brand-card-empty-stroke: var(--brand-slate-300);
   }
 }
 
-.btn-sm {
-  display: inline-flex;
-  align-items: center;
-  height: 1.8rem;
+// =============================================================================
+// 5 — App-level component styles
+// =============================================================================
+
+body {
+  font-feature-settings: "ss01", "cv11", "tnum";
+  background-color: var(--brand-surface-1);
+  color: var(--brand-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.card-border  {
+// Numeric type — vote values, deck previews, dashboard metrics
+.font-numeric,
+.card-value {
+  font-family: $font-family-monospace;
+  font-feature-settings: "tnum", "zero", "ss01";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+// Dashboard "metric label" — small, tracked, uppercase, slate-500
+.metric-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-text-muted);
+  font-feature-settings: "tnum";
+}
+
+.metric-value {
+  font-family: $font-family-monospace;
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--brand-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+// =============================================================================
+// Card primitive — used in three contexts:
+//   1. card-picker  (clickable, hover/select)
+//   2. player-hand  (face-down, face-up, spectator, dashed empty)
+//   3. turn-summary (small decorative)
+// =============================================================================
+
+.card-border {
   aspect-ratio: 64 / 89;
   height: 100px;
-  outline: 3px var(--card-color) solid;
-  outline-offset: -3px;
-  border-radius: 10px;
+  border-radius: 6px;
+  background-color: var(--brand-card-bg);
+  color: var(--brand-card-fg);
+  border: 1px solid var(--brand-hairline-strong);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $body-bg;
-  transition: transform 200ms ease-in-out, background-color 100ms ease-in, outline-color 100ms ease-in;
+  position: relative;
+  transition:
+    transform var(--brand-motion-base) var(--brand-motion-ease),
+    border-color var(--brand-motion-fast) var(--brand-motion-ease),
+    background-color var(--brand-motion-fast) var(--brand-motion-ease),
+    box-shadow var(--brand-motion-fast) var(--brand-motion-ease);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
-
-  &:not(.card-disabled, .dashed) {
-    box-shadow: 0 0 15px 0 $gray-400;
-  }
-
-  @include color-mode(dark) {
-    background-color: $gray-800;
-    color: white;
-    &:not(.card-disabled, .dashed) {
-      box-shadow: 0 0 15px 0 $gray-800;
-    }
-  }
-}
-
-.card-value {
-  font-size: xx-large;
-  user-select: none;
 }
 
 .card-disabled {
-  background: $gray-200;
-  outline-color: $gray-600;
-  color: $gray-700;
-  @include color-mode(dark) {
-    background: $gray-800;
-    color: $gray-600;
-  }
+  background: transparent;
+  border-color: var(--brand-card-empty-stroke);
+  color: var(--brand-text-muted);
 }
+
+.dashed {
+  border-style: dashed;
+  border-color: var(--brand-card-empty-stroke);
+  background: transparent;
+}
+
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  user-select: none;
+  line-height: 1;
+}
+
+// =============================================================================
+// Utility classes
+// =============================================================================
 
 .svh-100 {
   height: 100vh;
@@ -82,4 +256,340 @@ $color-mode-type: media-query;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+// =============================================================================
+// Bootstrap component overrides
+// =============================================================================
+
+// Primary button — emerald with dark text for crispness
+.btn-primary {
+  --bs-btn-color:               #{$brand-slate-900};
+  --bs-btn-bg:                  #{$brand-emerald-500};
+  --bs-btn-border-color:        #{$brand-emerald-500};
+  --bs-btn-hover-color:         #{$brand-slate-900};
+  --bs-btn-hover-bg:            #{$brand-emerald-400};
+  --bs-btn-hover-border-color:  #{$brand-emerald-400};
+  --bs-btn-active-color:        #{$brand-slate-900};
+  --bs-btn-active-bg:           #{$brand-emerald-600};
+  --bs-btn-active-border-color: #{$brand-emerald-600};
+  --bs-btn-disabled-color:      #{$brand-slate-500};
+  --bs-btn-disabled-bg:         #{$brand-slate-800};
+  --bs-btn-disabled-border-color: #{$brand-slate-700};
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+// Secondary / ghost button — slate outline, transparent fill
+.btn-secondary {
+  --bs-btn-color:               var(--brand-text-primary);
+  --bs-btn-bg:                  transparent;
+  --bs-btn-border-color:        var(--brand-hairline-strong);
+  --bs-btn-hover-color:         var(--brand-text-primary);
+  --bs-btn-hover-bg:            var(--brand-surface-3);
+  --bs-btn-hover-border-color:  var(--brand-hairline-strong);
+  --bs-btn-active-color:        var(--brand-text-primary);
+  --bs-btn-active-bg:           var(--brand-surface-2);
+  --bs-btn-active-border-color: var(--brand-hairline-strong);
+}
+
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  height: 1.875rem;
+  padding-inline: 0.625rem;
+  font-size: 0.8125rem;
+}
+
+// Form inputs — slate surface, emerald focus ring
+.form-control,
+.form-select {
+  background-color: var(--brand-surface-3);
+  border-color: var(--brand-hairline);
+  color: var(--brand-text-primary);
+  transition:
+    border-color var(--brand-motion-fast) var(--brand-motion-ease),
+    box-shadow var(--brand-motion-fast) var(--brand-motion-ease);
+
+  &::placeholder {
+    color: var(--brand-text-muted);
+  }
+
+  &:focus {
+    background-color: var(--brand-surface-3);
+    border-color: var(--brand-emerald-500);
+    color: var(--brand-text-primary);
+    box-shadow: 0 0 0 0.15rem rgba($brand-emerald-500, 0.25);
+  }
+}
+
+.form-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+// Links — emerald
+a {
+  color: var(--brand-emerald-400);
+  text-decoration: none;
+  transition: color var(--brand-motion-fast) var(--brand-motion-ease);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--brand-emerald-300);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+}
+
+// Keyboard focus ring — visible everywhere, but defer to Bootstrap on form controls
+:focus-visible {
+  outline: 2px solid var(--brand-emerald-400);
+  outline-offset: 2px;
+}
+button:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: none;
+}
+
+// Modals
+.modal-content {
+  background-color: var(--brand-surface-2);
+  color: var(--brand-text-primary);
+  border: 1px solid var(--brand-hairline);
+  border-radius: 8px;
+}
+.modal-header,
+.modal-footer {
+  border-color: var(--brand-hairline);
+}
+
+.dropdown-menu {
+  background-color: var(--brand-surface-2);
+  border-color: var(--brand-hairline);
+  color: var(--brand-text-primary);
+}
+
+// =============================================================================
+// Navbar — slate-800 elevated panel with a single hairline.
+// Cross-component styles live here because Angular emulated encapsulation
+// does not reach projected ng-content children.
+// =============================================================================
+
+.brand-nav {
+  background-color: var(--brand-surface-2);
+  border-bottom: 1px solid var(--brand-hairline);
+  color: var(--brand-text-primary);
+  min-height: 56px;
+}
+
+.brand-nav .text-muted,
+.brand-nav .form-check-label {
+  color: var(--brand-text-secondary) !important;
+}
+
+// App title + game name display — calmer than Bootstrap's fs-4 (24px)
+.brand-nav .fs-4 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+
+// Ghost icon buttons in the nav (link, qr, edit pencil)
+.brand-nav .btn-outline-light {
+  --bs-btn-color:               var(--brand-text-secondary);
+  --bs-btn-bg:                  transparent;
+  --bs-btn-border-color:        var(--brand-hairline);
+  --bs-btn-hover-color:         var(--brand-emerald-300);
+  --bs-btn-hover-bg:            var(--brand-surface-3);
+  --bs-btn-hover-border-color:  var(--brand-hairline-strong);
+  --bs-btn-active-color:        var(--brand-emerald-400);
+  --bs-btn-active-bg:           var(--brand-surface-3);
+  --bs-btn-active-border-color: var(--brand-hairline-strong);
+  transition:
+    color var(--brand-motion-fast) var(--brand-motion-ease),
+    background-color var(--brand-motion-fast) var(--brand-motion-ease),
+    border-color var(--brand-motion-fast) var(--brand-motion-ease);
+}
+
+// Spectator switch — emerald when on
+.brand-nav .form-check-input {
+  background-color: var(--brand-surface-3);
+  border-color: var(--brand-hairline-strong);
+
+  &:checked {
+    background-color: var(--brand-emerald-500);
+    border-color: var(--brand-emerald-500);
+  }
+  &:focus {
+    border-color: var(--brand-emerald-500);
+    box-shadow: 0 0 0 0.15rem rgba($brand-emerald-500, 0.25);
+  }
+}
+
+.brand-nav .bi {
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+
+// Offcanvas (edit player / edit game) — slate surface to match the nav
+.offcanvas {
+  background-color: var(--brand-surface-2);
+  color: var(--brand-text-primary);
+  border-left-color: var(--brand-hairline) !important;
+}
+.offcanvas-header {
+  border-bottom: 1px solid var(--brand-hairline);
+}
+.offcanvas-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.offcanvas .btn-close {
+  filter: invert(1) grayscale(100%) brightness(0.85);
+}
+
+// Tooltips — slate, not white
+.tooltip-inner {
+  background-color: var(--brand-slate-700);
+  color: var(--brand-text-primary);
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--brand-hairline-strong);
+}
+.tooltip .tooltip-arrow::before {
+  border-bottom-color: var(--brand-slate-700) !important;
+  border-top-color: var(--brand-slate-700) !important;
+}
+
+// =============================================================================
+// Page headings — calmer, more operational than Bootstrap defaults
+// =============================================================================
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--brand-text-primary);
+  letter-spacing: -0.015em;
+}
+h2 {
+  font-size: clamp(1.375rem, 2.4vw, 1.625rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+// =============================================================================
+// Footer — links + small attribution
+// =============================================================================
+
+.brand-footer {
+  border-top: 1px solid var(--brand-hairline);
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  margin-top: auto;
+}
+.brand-footer__links {
+  gap: 0.25rem 0.5rem;
+}
+.brand-footer__links .nav-link {
+  color: var(--brand-text-secondary);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  padding: 0.25rem 0.5rem;
+  transition: color var(--brand-motion-fast) var(--brand-motion-ease);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--brand-emerald-400);
+  }
+}
+.brand-footer__attribution {
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--brand-text-muted);
+  letter-spacing: 0.01em;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--brand-hairline-strong);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--brand-emerald-400);
+      text-decoration-color: currentColor;
+    }
+  }
+}
+
+// =============================================================================
+// Bg utilities — make sure Bootstrap's body-secondary uses our token
+// =============================================================================
+
+.bg-body-secondary {
+  background-color: var(--brand-surface-2) !important;
+}
+
+// Tighten Bootstrap's default .text-muted to read on slate
+.text-muted {
+  color: var(--brand-text-secondary) !important;
+}
+
+// =============================================================================
+// QR-code modal panel — the one place a white card-on-card is justified
+// (QR scanners need maximum contrast)
+// =============================================================================
+
+.qr-panel {
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--brand-slate-200);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+}
+
+// =============================================================================
+// Modal header + close button — slate surface, emerald accents
+// =============================================================================
+
+.modal-header .btn-close,
+.offcanvas-header .btn-close {
+  // Bootstrap's btn-close uses a dark SVG by default; invert for dark mode
+  filter: invert(0.9);
+  opacity: 0.7;
+  transition: opacity var(--brand-motion-fast) var(--brand-motion-ease);
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+.modal-title,
+.offcanvas-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+// Modal backdrop — slightly more opaque to mute the busy ongoing-game UI behind
+.modal-backdrop.show {
+  opacity: 0.7;
+  background-color: var(--brand-slate-950);
 }

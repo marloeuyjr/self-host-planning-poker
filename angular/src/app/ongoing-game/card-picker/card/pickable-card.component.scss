@@ -1,11 +1,58 @@
+// =============================================================================
+// Pickable vote card — clickable card in the card-picker row.
+//
+// States:
+//   default                    border: hairline-strong, surface-2 bg
+//   hover (.clickable:hover)   border: emerald-500, slight lift
+//   selected                   lifted, emerald border, dark-emerald tint bg
+//   disabled (.card-disabled)  muted slate, no cursor, no hover
+// =============================================================================
+
+:host {
+  display: inline-block;
+}
+
+.card-border {
+  margin: 0.5rem;
+}
+
 .clickable {
   cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--brand-emerald-500);
+    box-shadow: 0 6px 18px -8px rgba(16, 185, 129, 0.35);
+  }
+
+  &:active {
+    transform: translateY(-2px);
+    transition-duration: var(--brand-motion-fast);
+  }
 }
 
 .card-disabled {
   cursor: default !important;
+  &:hover {
+    transform: none;
+    border-color: var(--brand-card-empty-stroke);
+    box-shadow: none;
+  }
 }
 
 .selected {
-  transform: translateY(-50%);
+  transform: translateY(-14px);
+  border-color: var(--brand-emerald-500);
+  background-color: color-mix(in oklab, var(--brand-emerald-500) 12%, var(--brand-card-bg));
+  box-shadow:
+    0 0 0 1px var(--brand-emerald-500),
+    0 10px 30px -12px rgba(16, 185, 129, 0.55);
+
+  .card-value {
+    color: var(--brand-emerald-300);
+  }
+
+  &:hover {
+    transform: translateY(-14px);  // don't lift further on hover when already selected
+  }
 }

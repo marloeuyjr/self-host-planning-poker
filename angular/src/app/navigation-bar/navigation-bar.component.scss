@@ -1,25 +1,31 @@
-@import "node_modules/bootstrap/scss/functions";
-@import "node_modules/bootstrap/scss/variables";
-@import "node_modules/bootstrap/scss/mixins";
+// Component-local styles. Styling of projected ng-content children (game-name,
+// game-info, player-info) lives in global styles.scss under `.brand-nav ...`
+// since Angular's emulated encapsulation does not reach projected content.
 
-$color-mode-type: media-query;
+.brand-nav__home {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: opacity var(--brand-motion-fast) var(--brand-motion-ease);
 
-nav {
-  border-bottom: 1px solid $gray-400;
-  box-shadow: 0 0 10px 0 $gray-400;
-  @include color-mode(dark) {
-    border-bottom-color: var(--navbar-border-bottom-color);
-    box-shadow: 0 0 10px 0 $gray-800;
+  &:hover {
+    opacity: 0.85;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--brand-emerald-400);
+    outline-offset: 2px;
+  }
+}
+
+.brand-nav__logo {
+  height: 36px;
+  display: block;
+
+  @media (min-width: 576px) {
+    height: 42px;
   }
 }
 
 .min-w {
   min-width: 0;
-}
-
-.icon {
-  height: 38px;
-  @include media-breakpoint-up(sm) {
-    height: 48px;
-  }
 }

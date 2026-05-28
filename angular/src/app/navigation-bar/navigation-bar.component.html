@@ -1,8 +1,8 @@
-<nav class="bg-primary">
-  <div class="container-fluid d-flex flex-row align-items-center p-2 ps-2 pe-2 ps-md-3 pe-md-3">
+<nav class="brand-nav">
+  <div class="container-fluid d-flex flex-row align-items-center gap-2 gap-md-3 px-2 py-2 px-md-3">
     <div *transloco="let t; read 'navbar'">
-      <a href="/new" [attr.aria-label]="t('homeLink')">
-        <img class="me-2 me-md-3 icon" [src]="'assets/nav-logo.svg' | baseHref " [alt]="t('appIcon')" />
+      <a class="brand-nav__home" href="/new" [attr.aria-label]="t('homeLink')">
+        <img class="brand-nav__logo" [src]="'assets/nav-logo.svg' | baseHref " [alt]="t('appIcon')" />
       </a>
     </div>
     <ng-content></ng-content>

@@ -1,15 +1,106 @@
-@import "bootstrap/scss/functions";
-@import "bootstrap/scss/variables";
+// =============================================================================
+// Turn summary — dashboard treatment.
+//
+// LEFT: vote distribution as compact cards in a horizontal row (winner highlighted).
+// RIGHT: Average + Agreement as large monospaced metrics with small labels above.
+// =============================================================================
 
-.card-border {
-  height: 75px;
-  &.muted {
-    outline-color: $gray-600;
-    outline-width: 2px;
-    outline-offset: -2px;
-  }
+:host {
+  background-color: var(--brand-surface-2);
+  border-top: 1px solid var(--brand-hairline);
+  display: block;
 }
 
-.card-value {
-  font-size: x-large;
+.turn-summary__distribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 1.5rem;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.turn-summary__bucket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.turn-summary__card {
+  height: 64px;
+  width: 46px;
+  border-radius: 4px;
+  border-width: 1px;
+}
+.turn-summary__card.is-winner {
+  border-color: var(--brand-emerald-500);
+  background-color: color-mix(in oklab, var(--brand-emerald-500) 14%, var(--brand-card-bg));
+  box-shadow: 0 0 0 1px var(--brand-emerald-500);
+}
+.turn-summary__card.is-winner .card-value {
+  color: var(--brand-emerald-300);
+}
+.turn-summary__card.is-muted {
+  border-color: var(--brand-hairline);
+  background-color: transparent;
+}
+.turn-summary__card.is-muted .card-value {
+  color: var(--brand-text-muted);
+  font-size: 1.25rem;
+}
+.turn-summary__card .card-value {
+  font-size: 1.5rem;
+}
+
+.turn-summary__bucket-label {
+  margin: 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--brand-text-secondary);
+  line-height: 1.2;
+}
+.turn-summary__bucket.is-winner .turn-summary__bucket-label {
+  color: var(--brand-text-primary);
+  font-weight: 600;
+}
+
+.turn-summary__metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 2rem;
+  height: 100%;
+  align-content: center;
+  padding-left: 1rem;
+  border-left: 1px solid var(--brand-hairline);
+}
+
+.turn-summary__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+// Agreement color states — tinted by brand colors so they read well on slate
+.turn-summary__metric .text-danger {
+  color: #FCA5A5 !important;  // red-300
+}
+.turn-summary__metric .text-warning {
+  color: #FCD34D !important;  // amber-300
+}
+.turn-summary__metric .text-success {
+  color: var(--brand-emerald-300) !important;
+}
+
+// Responsive: stack the metrics border-left on narrow screens
+@media (max-width: 767.98px) {
+  .turn-summary__metrics {
+    border-left: none;
+    border-top: 1px solid var(--brand-hairline);
+    padding-left: 0;
+    padding-top: 1rem;
+  }
 }
