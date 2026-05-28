@@ -1,34 +1,29 @@
 /**
- * This is an example of overridden CSS to change the application from green to red.
+ * Example: override the brand palette for a custom re-theme.
+ *
+ * The Driftsprognoser brand is slate-900 + emerald-500. To re-theme, redefine
+ * the --brand-* CSS custom properties on :root after the app stylesheet loads.
+ * This file is NOT automatically loaded — link it from index.html if you want
+ * to use it as a runtime override layer.
  */
-/*:root {
-  --bs-primary: #621818;
-  --card-color: #d53434;
-  --navbar-bg-color: #e74646;
-  --navbar-border-bottom-color: #812020;
-  --navbar-text-color: white;
-  --navbar-muted-color: #424242;
+/*
+:root {
+  --brand-emerald-500: #d53434;
+  --brand-emerald-400: #e54e4e;
+  --brand-emerald-300: #f37a7a;
+  --brand-slate-900:   #1a0808;
+  --brand-slate-800:   #2a1010;
+  --brand-slate-700:   #3a1818;
 
-  .btn-primary {
-    --bs-btn-bg: #d53434;
-    --bs-btn-border-color: #d53434;
-    --bs-btn-disabled-bg: #d26565;
-    --bs-btn-disabled-border-color: #d53434;
-    --bs-btn-hover-bg: #d26565;
-    --bs-btn-hover-border-color: #d53434;
-  }
+  --brand-surface-1: var(--brand-slate-900);
+  --brand-surface-2: var(--brand-slate-800);
+  --brand-card-bg:   var(--brand-slate-800);
+}
 
-  .form-control:focus, .form-select:focus {
-    border-color: #d26565;
-    box-shadow: var(--bs-box-shadow-inset), 0 0 0 .25rem rgba(208, 133, 133, 0.3)
-  }
-
-  .form-check-input:checked {
-    background-color: #d53434;
-    border-color: #d53434;
-  }
-
-  --bs-btn-close-focus-shadow: rgba(208, 133, 133, 0.8);
-  --bs-link-color: #d53434;
-  --bs-link-hover-color: #6b1919;
-}*/
+.btn-primary {
+  --bs-btn-bg: var(--brand-emerald-500);
+  --bs-btn-border-color: var(--brand-emerald-500);
+  --bs-btn-hover-bg: var(--brand-emerald-400);
+  --bs-btn-hover-border-color: var(--brand-emerald-400);
+}
+*/

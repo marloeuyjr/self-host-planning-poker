@@ -1,9 +1,60 @@
-.face-down {
-  background-color: var(--card-color);
-  outline-offset: -5px;
-  outline-color: white;
+// =============================================================================
+// Player-hand card states.
+//
+//   face-down: this player has picked but cards are not revealed yet —
+//              show the back of the card (emerald with subtle motif)
+//   dashed:    this player has NOT picked yet, or is a spectator —
+//              dashed slate outline, transparent fill
+//   default (face-up + has value): the card-border baseline
+// =============================================================================
+
+:host {
+  display: block;
 }
 
+.player-name {
+  color: var(--brand-text-secondary);
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Face-down — emerald solid with a subtle inner forecast-line motif
+// (echoing nav-logo.svg's dashed velocity arrow).
+.face-down {
+  background-color: var(--brand-emerald-500);
+  border-color: var(--brand-emerald-600);
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0,
+      transparent 10px,
+      rgba(15, 23, 42, 0.12) 10px,
+      rgba(15, 23, 42, 0.12) 11px
+    );
+
+  .card-value {
+    color: transparent;  // hide the placeholder value
+  }
+}
+
+// Dashed empty — slate-600 dashed outline, transparent
 .dashed {
-  outline-style: dashed;
+  border-style: dashed;
+  border-color: var(--brand-card-empty-stroke);
+  background: transparent;
+
+  .card-value {
+    color: var(--brand-text-muted);
+  }
+}
+
+// Spectator card (eye icon) — dashed muted slate
+.card-disabled .card-value {
+  color: var(--brand-text-muted);
+  font-size: 1.5rem;
 }

@@ -1,13 +1,18 @@
-<ng-container *transloco="let t; read 'footer'">
-  <ul class="nav">
-    <li class="nav-item">
-      <a class="nav-link" target="_blank" href="https://github.com/axeleroy/self-host-planning-poker">{{ t('github') }}</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" target="_blank" href="https://hub.docker.com/r/axeleroy/self-host-planning-poker">{{ t('dockerhub') }}</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" target="_blank" href="https://github.com/axeleroy/self-host-planning-poker/blob/main/LICENSE">{{ t('license') }}</a>
-    </li>
-  </ul>
-</ng-container>
+<div class="brand-footer">
+  <ng-container *transloco="let t; read 'footer'">
+    <ul class="nav brand-footer__links">
+      <li class="nav-item">
+        <a class="nav-link" target="_blank" rel="noopener" href="https://github.com/marloeuyjr/self-host-planning-poker">{{ t('github') }}</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" target="_blank" rel="noopener" href="https://github.com/marloeuyjr/self-host-planning-poker/pkgs/container/self-host-planning-poker">Container</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" target="_blank" rel="noopener" href="https://github.com/marloeuyjr/self-host-planning-poker/blob/main/LICENSE">{{ t('license') }}</a>
+      </li>
+    </ul>
+    <p class="brand-footer__attribution">
+      Fork of <a target="_blank" rel="noopener" href="https://github.com/axeleroy/self-host-planning-poker">axeleroy/self-host-planning-poker</a> · MIT
+    </p>
+  </ng-container>
+</div>
