@@ -38,6 +38,8 @@ app_root = os.getenv('APP_ROOT', '/')
 if not app_root.endswith('/'):
     app_root += '/'
 
+app_title = os.getenv('APP_TITLE', 'Driftsprognoser Planning Poker')
+
 
 @app.route('/create', methods=['POST'])
 def create():
@@ -54,7 +56,7 @@ def serve_file(file, ext):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
-    return render_template('index.html', app_root=app_root)
+    return render_template('index.html', app_root=app_root, app_title=app_title)
 
 
 @app.route('/favicon.ico')
