@@ -6,7 +6,7 @@ from peewee import DoesNotExist
 from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError
 from gamestate.game import Game
-from gamestate.models import StoredGame
+from gamestate.models import StoredGame, Issue, EstimationResult
 from gamestate.player import Player
 
 
@@ -28,6 +28,7 @@ class GameManager:
             try:
                 stored_game = StoredGame.get(StoredGame.uuid == game_uuid)
                 game = Game(stored_game.name, Deck[stored_game.deck])
+                self.__hydrate_backlog(game, stored_game)
                 self.games[game_uuid] = game
             except DoesNotExist:
                 raise GameDoesNotExistError(f'Game {game_uuid} does not exist')
@@ -92,6 +93,50 @@ class GameManager:
         game = self.__get_ongoing_game(game_uuid)
         game.end_turn()
         return game.state(), game.info()
+
+    def backlog(self, game_uuid: str) -> dict:
+        game = self.__get_ongoing_game(game_uuid)
+        return game.backlog()
+
+    @staticmethod
+    def __hydrate_backlog(game: Game, stored_game: StoredGame) -> None:
+        """Rebuild the in-memory issue queue from the database on cache-miss (S1, E5).
+
+        Accepted results and queue position always survive a worker restart; the
+        active issue simply re-opens for voting (in-flight pre-reveal votes are not
+        persisted, by design)."""
+        issues = []
+        current = None
+        for idx, issue in enumerate(stored_game.issues.order_by(Issue.order_index)):
+            issues.append({
+                'id': issue.id,
+                'key': issue.jira_key,
+                'summary': issue.summary,
+                'description': issue.description,
+                'status': issue.status,
+                'orderIndex': issue.order_index,
+            })
+            if issue.status == 'estimating' and current is None:
+                current = idx
+        if current is None:
+            for idx, item in enumerate(issues):
+                if item['status'] in ('pending', 'estimating'):
+                    current = idx
+                    break
+        results = {}
+        for issue in stored_game.issues:
+            rows = list(issue.results.order_by(EstimationResult.round_number))
+            if rows:
+                results[issue.id] = [{
+                    'round': r.round_number,
+                    'finalValue': r.final_value,
+                    'average': r.average,
+                    'median': r.median,
+                    'agreement': r.agreement,
+                    'deck': r.deck_at_vote,
+                    'voterCount': r.voter_count,
+                } for r in rows]
+        game.set_backlog(issues, current, results)
 
     @staticmethod
     def __get_deck(deck_name) -> Deck:

@@ -12,6 +12,9 @@ class Game:
         self.__state = {}
         self.__deck = deck
         self.__revealed = False
+        self.__backlog = []
+        self.__current = None
+        self.__results = {}
 
     def player_joins(self, uuid: str, player: Player):
         self.__state[uuid] = player
@@ -80,4 +83,23 @@ class Game:
             'name': self.name,
             'deck': self.__deck.name,
             'revealed': self.__revealed
+        }
+
+    def set_backlog(self, issues: list, current=None, results=None) -> None:
+        """Hydrate the issue queue (S1). `issues` is an ordered list of dicts,
+        `current` the index of the active issue, `results` a map of issue id ->
+        list of saved result dicts."""
+        self.__backlog = list(issues)
+        self.__current = current
+        self.__results = results or {}
+
+    def has_backlog(self) -> bool:
+        return len(self.__backlog) > 0
+
+    def backlog(self) -> dict:
+        """Serialisable backlog payload for broadcast to the room."""
+        return {
+            'issues': self.__backlog,
+            'currentIndex': self.__current,
+            'results': self.__results,
         }

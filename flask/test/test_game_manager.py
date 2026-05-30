@@ -8,7 +8,7 @@ from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, \
     GameNotOngoingError
 from gamestate.game_manager import GameManager
-from gamestate.models import StoredGame, database_proxy
+from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy, create_tables
 
 
 class GameManagerTestCase(unittest.TestCase):
@@ -18,7 +18,7 @@ class GameManagerTestCase(unittest.TestCase):
         database_proxy.initialize(test_db)
         if database_proxy.is_closed():
             database_proxy.connect()
-        StoredGame.create_table()
+        create_tables()
 
     def test_create(self):
         gm = GameManager()
@@ -252,6 +252,22 @@ class GameManagerTestCase(unittest.TestCase):
         with self.assertRaises(GameNotOngoingError) as ex:
             gm.end_turn('uuid2')
         self.assertEqual(str(ex.exception), 'Game uuid2 is not ongoing')
+
+    def test_get_hydrates_backlog_from_db(self):
+        game_id = str(uuid.uuid4())
+        StoredGame.create(uuid=game_id, name='Sprint', deck='FIBONACCI')
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        i1 = Issue.create(game=sg, jira_key='OPS-1', summary='one', order_index=0, status='estimated')
+        Issue.create(game=sg, jira_key='OPS-2', summary='two', order_index=1, status='pending')
+        EstimationResult.create(issue=i1, round_number=1, final_value=5.0, average=5.0,
+                                agreement=1.0, deck_at_vote='FIBONACCI', voter_count=3)
+        gm = GameManager()
+        game = gm.get(game_id)
+        payload = game.backlog()
+        self.assertEqual([i['key'] for i in payload['issues']], ['OPS-1', 'OPS-2'])
+        self.assertEqual(payload['currentIndex'], 1)  # first not-yet-estimated issue
+        self.assertIn(i1.id, payload['results'])
+        self.assertEqual(payload['results'][i1.id][0]['finalValue'], 5.0)
 
 
 if __name__ == '__main__':

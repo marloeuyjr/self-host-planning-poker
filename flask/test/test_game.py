@@ -307,6 +307,17 @@ class GameTestCase(unittest.TestCase):
         game2.end_turn()
         self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
 
+    def test_set_and_expose_backlog(self):
+        game = Game('Sprint')
+        self.assertFalse(game.has_backlog())
+        issues = [{'id': 1, 'key': 'OPS-1', 'summary': 's', 'status': 'pending', 'orderIndex': 0}]
+        game.set_backlog(issues, current=0, results={1: [{'round': 1}]})
+        self.assertTrue(game.has_backlog())
+        payload = game.backlog()
+        self.assertEqual(payload['issues'], issues)
+        self.assertEqual(payload['currentIndex'], 0)
+        self.assertEqual(payload['results'], {1: [{'round': 1}]})
+
 
 if __name__ == '__main__':
     unittest.main()

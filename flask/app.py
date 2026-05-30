@@ -11,7 +11,7 @@ from peewee import SqliteDatabase, OperationalError
 from permission_check import check_db_file_permissions
 from gamestate.exceptions import PlanningPokerException
 from gamestate.game_manager import GameManager
-from gamestate.models import database_proxy, StoredGame
+from gamestate.models import database_proxy, StoredGame, create_tables
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -30,7 +30,7 @@ else:
 database_proxy.initialize(real_db)
 if database_proxy.is_closed():
     database_proxy.connect()
-StoredGame.create_table()
+create_tables()
 
 gm = GameManager()
 
