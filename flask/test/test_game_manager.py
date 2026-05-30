@@ -269,6 +269,44 @@ class GameManagerTestCase(unittest.TestCase):
         self.assertIn(i1.id, payload['results'])
         self.assertEqual(payload['results'][i1.id][0]['finalValue'], 5.0)
 
+    def test_create_with_backlog_inserts_issues_in_order(self):
+        gm = GameManager()
+        issues = [
+            {'jira_key': 'OPS-1', 'summary': 'one', 'url': 'http://j/1', 'description': 'first'},
+            {'jira_key': 'OPS-2', 'summary': 'two', 'url': None, 'description': None},
+        ]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        rows = list(sg.issues.order_by(Issue.order_index))
+        self.assertEqual([r.jira_key for r in rows], ['OPS-1', 'OPS-2'])
+        self.assertEqual([r.order_index for r in rows], [0, 1])
+        self.assertEqual(rows[0].url, 'http://j/1')
+        self.assertEqual(rows[0].description, 'first')
+        self.assertEqual(rows[0].source, 'paste')
+        self.assertTrue(all(r.status == 'pending' for r in rows))
+        # The in-memory game is ready to broadcast its backlog immediately.
+        payload = gm.get(game_id).backlog()
+        self.assertEqual([i['key'] for i in payload['issues']], ['OPS-1', 'OPS-2'])
+        self.assertEqual(payload['currentIndex'], 0)
+
+    def test_create_with_backlog_is_one_transaction(self):
+        # A bad row mid-insert rolls the whole thing back — no half-created game.
+        gm = GameManager()
+        before_games = StoredGame.select().count()
+        bad_issues = [
+            {'jira_key': 'OPS-1', 'summary': 'ok'},
+            {'jira_key': None, 'summary': 'this row violates NOT NULL'},
+        ]
+        with self.assertRaises(Exception):
+            gm.create('Doomed', 'FIBONACCI', bad_issues)
+        self.assertEqual(StoredGame.select().count(), before_games)
+        self.assertEqual(Issue.select().where(Issue.summary == 'ok').count(), 0)
+
+    def test_create_without_backlog_still_works(self):
+        gm = GameManager()
+        game_id = gm.create('No backlog', 'POWERS')
+        self.assertFalse(gm.get(game_id).has_backlog())
+
 
 if __name__ == '__main__':
     unittest.main()

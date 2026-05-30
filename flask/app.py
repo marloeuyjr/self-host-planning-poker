@@ -11,6 +11,7 @@ from peewee import SqliteDatabase, OperationalError
 from permission_check import check_db_file_permissions
 from gamestate.exceptions import PlanningPokerException
 from gamestate.game_manager import GameManager
+from gamestate.intake import parse_issues
 from gamestate.models import database_proxy, StoredGame, create_tables
 
 app = Flask(__name__)
@@ -46,7 +47,15 @@ def create():
     body = request.json
     game_name = body['name']
     game_deck = body['deck']
-    return gm.create(game_name, game_deck)
+    # Optional starting backlog (S3). Parsed here on the request thread — never a
+    # Jira API call, never inside a Socket.IO handler (E1).
+    backlog_text = body.get('backlog')
+    backlog_format = body.get('backlogFormat', 'paste')
+    try:
+        issues = parse_issues(backlog_text, backlog_format) if backlog_text else None
+        return gm.create(game_name, game_deck, issues, source=backlog_format if issues else None)
+    except PlanningPokerException as e:
+        return str(e), 400
 
 
 @app.route('/<string:file>.<string:ext>')

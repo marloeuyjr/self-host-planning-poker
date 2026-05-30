@@ -6,7 +6,7 @@ from peewee import DoesNotExist
 from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError
 from gamestate.game import Game
-from gamestate.models import StoredGame, Issue, EstimationResult
+from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
 
 
@@ -15,11 +15,32 @@ class GameManager:
     def __init__(self):
         self.games = {}
 
-    def create(self, name: str, deck_name='FIBONACCI') -> str:
+    def create(self, name: str, deck_name='FIBONACCI', issues=None, source=None) -> str:
+        """Create a game and, optionally, its starting backlog in one transaction (S3).
+
+        `issues` is a list of parsed dicts (`jira_key`, `summary`, optional `url` /
+        `description`) from `gamestate.intake`. The game row and every issue row are
+        written atomically so a bad row never leaves a half-created session.
+        """
         game_uuid = str(uuid.uuid4())
         deck = self.__get_deck(deck_name)
-        StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
-        self.games[game_uuid] = Game(name, deck)
+        with database_proxy.atomic():
+            stored_game = StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
+            if issues:
+                Issue.insert_many([{
+                    'game': game_uuid,
+                    'jira_key': i['jira_key'],
+                    'summary': i['summary'],
+                    'description': i.get('description'),
+                    'url': i.get('url'),
+                    'order_index': idx,
+                    'status': 'pending',
+                    'source': source,
+                } for idx, i in enumerate(issues)]).execute()
+        game = Game(name, deck)
+        if issues:
+            self.__hydrate_backlog(game, stored_game)
+        self.games[game_uuid] = game
         return game_uuid
 
     def get(self, game_uuid: str) -> Game:
@@ -113,6 +134,7 @@ class GameManager:
                 'key': issue.jira_key,
                 'summary': issue.summary,
                 'description': issue.description,
+                'url': issue.url,
                 'status': issue.status,
                 'orderIndex': issue.order_index,
             })

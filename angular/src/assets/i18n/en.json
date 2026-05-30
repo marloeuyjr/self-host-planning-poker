@@ -29,7 +29,12 @@
     "name-placeholder": "Backlog Review Team Pizza",
     "deck-label": "Game's deck",
     "createButton-label": "Create new game",
-    "updateButton-label": "{{buttons.update}}"
+    "updateButton-label": "{{buttons.update}}",
+    "backlog-label": "Backlog (optional)",
+    "backlog-placeholder": "OPS-1  Add nightly backup job\nOPS-2  Tune the readiness probe",
+    "backlog-hint": "Paste: one \"KEY  Summary\" per line. CSV: key,summary,url,description.",
+    "format-paste": "Paste",
+    "format-csv": "CSV"
   },
   "deckNames": {
     "FIBONACCI": "Fibonacci",
@@ -82,7 +87,9 @@
     "4003": "Somehow, you are trying to do an action on a game you are not part of.",
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
-    "4006": "You are a spectator, you should not be able to pick a card."
+    "4006": "You are a spectator, you should not be able to pick a card.",
+    "4007": "That backlog could not be parsed: {{message}}",
+    "4008": "Only the session driver can do that."
   },
   "reconnect": {
     "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
