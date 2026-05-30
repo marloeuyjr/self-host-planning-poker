@@ -29,7 +29,12 @@
     "name-placeholder": "Backlog Review Team Pizza",
     "deck-label": "Game's deck",
     "createButton-label": "Create new game",
-    "updateButton-label": "{{buttons.update}}"
+    "updateButton-label": "{{buttons.update}}",
+    "backlog-label": "Backlog (optional)",
+    "backlog-placeholder": "OPS-1  Add nightly backup job\nOPS-2  Tune the readiness probe",
+    "backlog-hint": "Paste: one \"KEY  Summary\" per line. CSV: key,summary,url,description.",
+    "format-paste": "Paste",
+    "format-csv": "CSV"
   },
   "deckNames": {
     "FIBONACCI": "Fibonacci",
@@ -52,7 +57,20 @@
   "turnSummary": {
     "average-label": "Average:",
     "agreement-label": "Agreement:",
-    "votes-label": "{{votes}} Votes"
+    "votes-label": "{{votes}} Votes",
+    "median-label": "Median:",
+    "range-label": "Range:",
+    "round": "Round {{round}}",
+    "consensus": "Consensus",
+    "divergence": "No consensus",
+    "no-votes": "No votes cast.",
+    "final-label": "Final estimate",
+    "accept": "Accept estimate",
+    "revote": "Re-vote",
+    "decide-hint": "Two rounds without consensus — set the value or park this issue.",
+    "prior-label": "Prior:",
+    "prior-round": "R{{round}}: {{value}}",
+    "driver-only": "The session driver records the estimate for this issue."
   },
   "buttons": {
     "edit": "Edit game info",
@@ -63,7 +81,8 @@
     "reveal": "Reveal cards",
     "newTurn": "New turn",
     "link": "Copy link to join game",
-    "qrcode": "Display QR code to join game"
+    "qrcode": "Display QR code to join game",
+    "claimDriver": "Take control"
   },
   "playerState": {
     "spectator": "Spectator",
@@ -82,12 +101,37 @@
     "4003": "Somehow, you are trying to do an action on a game you are not part of.",
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
-    "4006": "You are a spectator, you should not be able to pick a card."
+    "4006": "You are a spectator, you should not be able to pick a card.",
+    "4007": "That backlog could not be parsed: {{message}}",
+    "4008": "Only the session driver can do that."
   },
   "reconnect": {
     "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
     "error": "Could not reconnect. Reason: \"{{error}}\".",
     "failed": "Could not reconnect after {{attempts}} attempts.",
     "success": "Successfully reconnected after {{attempts}} attempts."
+  },
+  "currentIssue": {
+    "show-detail": "Details",
+    "hide-detail": "Hide",
+    "none-selected": "Select an issue from the queue to start estimating.",
+    "park": "Park",
+    "park-reason-placeholder": "Reason (optional) — e.g. missing AC",
+    "park-refine": "Needs refinement",
+    "park-skip": "Skip"
+  },
+  "queueRail": {
+    "title": "Backlog",
+    "progress": "{{done}} / {{total}} estimated",
+    "status": {
+      "pending": "Pending",
+      "estimating": "Voting",
+      "estimated": "Done",
+      "refinement": "Refine",
+      "skipped": "Skipped"
+    }
+  },
+  "resume": {
+    "notice": "Session resumed — please re-vote the current issue (in-flight votes are not restored)."
   }
 }

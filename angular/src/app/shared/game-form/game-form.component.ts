@@ -1,14 +1,14 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Deck, decks, decksDict, displayDeckValues } from '../../model/deck';
-import { NgFor } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { TranslocoDirective } from '@ngneat/transloco';
 
 @Component({
   standalone: true,
   selector: 'shpp-game-form',
   templateUrl: './game-form.component.html',
-  imports: [TranslocoDirective, NgFor, ReactiveFormsModule]
+  imports: [TranslocoDirective, NgFor, NgIf, ReactiveFormsModule]
 })
 export class GameFormComponent implements OnInit{
 
@@ -20,12 +20,15 @@ export class GameFormComponent implements OnInit{
   name?: string;
   @Input()
   deck?: string;
-  @Output() gameOutput = new EventEmitter<{name: string, deck: Deck}>();
+  @Output() gameOutput = new EventEmitter<{name: string, deck: Deck, backlog?: string, backlogFormat?: string}>();
 
   constructor(private fb: FormBuilder) {
     this.formGroup = this.fb.group({
       name: [ '', [ Validators.required, Validators.minLength(1) ]],
-      deck: [ decksDict['FIBONACCI'], Validators.required ]
+      deck: [ decksDict['FIBONACCI'], Validators.required ],
+      // Optional starting backlog — only shown / sent when creating a game (S3).
+      backlog: [ '' ],
+      backlogFormat: [ 'paste' ]
     });
   }
 

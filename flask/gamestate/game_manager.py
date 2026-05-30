@@ -4,10 +4,12 @@ from typing import Optional
 from peewee import DoesNotExist
 
 from gamestate.deck import Deck
-from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError
+from gamestate.exceptions import (GameDoesNotExistError, DeckDoesNotExistError,
+                                  GameNotOngoingError, NoCurrentIssueError, NotDriverError)
 from gamestate.game import Game
-from gamestate.models import StoredGame
+from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
+from gamestate.stats import compute_stats
 
 
 class GameManager:
@@ -15,11 +17,32 @@ class GameManager:
     def __init__(self):
         self.games = {}
 
-    def create(self, name: str, deck_name='FIBONACCI') -> str:
+    def create(self, name: str, deck_name='FIBONACCI', issues=None, source=None) -> str:
+        """Create a game and, optionally, its starting backlog in one transaction (S3).
+
+        `issues` is a list of parsed dicts (`jira_key`, `summary`, optional `url` /
+        `description`) from `gamestate.intake`. The game row and every issue row are
+        written atomically so a bad row never leaves a half-created session.
+        """
         game_uuid = str(uuid.uuid4())
         deck = self.__get_deck(deck_name)
-        StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
-        self.games[game_uuid] = Game(name, deck)
+        with database_proxy.atomic():
+            stored_game = StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
+            if issues:
+                Issue.insert_many([{
+                    'game': game_uuid,
+                    'jira_key': i['jira_key'],
+                    'summary': i['summary'],
+                    'description': i.get('description'),
+                    'url': i.get('url'),
+                    'order_index': idx,
+                    'status': 'pending',
+                    'source': source,
+                } for idx, i in enumerate(issues)]).execute()
+        game = Game(name, deck)
+        if issues:
+            self.__hydrate_backlog(game, stored_game)
+        self.games[game_uuid] = game
         return game_uuid
 
     def get(self, game_uuid: str) -> Game:
@@ -28,6 +51,7 @@ class GameManager:
             try:
                 stored_game = StoredGame.get(StoredGame.uuid == game_uuid)
                 game = Game(stored_game.name, Deck[stored_game.deck])
+                self.__hydrate_backlog(game, stored_game)
                 self.games[game_uuid] = game
             except DoesNotExist:
                 raise GameDoesNotExistError(f'Game {game_uuid} does not exist')
@@ -46,11 +70,14 @@ class GameManager:
         StoredGame.update(deck=deck_name).where(StoredGame.uuid == uuid.UUID(game_uuid)).execute()
         return game.info(), game.state()
 
-    def join_game(self, game_uuid: str, player_id: str, player_name: str, is_spectator: bool) -> tuple[dict, dict]:
+    def join_game(self, game_uuid: str, player_id: str, player_name: str,
+                  is_spectator: bool, token=None) -> tuple[dict, dict, str, bool]:
+        """Join (or reattach via `token`, S7). Returns info, state, the effective
+        player id, and whether this is a post-restart resume (E5)."""
         game = self.get(game_uuid)
         player = Player(player_name, is_spectator)
-        game.player_joins(player_id, player)
-        return game.info(), game.state()
+        effective_id = game.player_joins(player_id, player, token=token)
+        return game.info(), game.state(), effective_id, game.is_resumed()
 
     def leave_game(self, game_uuid: str, player_uuid: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)
@@ -83,15 +110,159 @@ class GameManager:
         game.player_picks(player_uuid, pick)
         return game.state()
 
-    def reveal_cards(self, game_uuid: str) -> tuple[dict, dict]:
+    def reveal_cards(self, game_uuid: str) -> tuple[dict, dict, dict]:
+        """Reveal and compute the round's stats server-side (S5, no browser math)."""
         game = self.__get_ongoing_game(game_uuid)
         game.reveal_hands()
-        return game.state(), game.info()
+        return game.state(), game.info(), self.__round_results(game)
 
     def end_turn(self, game_uuid: str) -> tuple[dict, dict]:
         game = self.__get_ongoing_game(game_uuid)
         game.end_turn()
         return game.state(), game.info()
+
+    @staticmethod
+    def __round_results(game: Game) -> dict:
+        """Server-computed stats for the current hands + the proposed final value (E4)."""
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        proposed = stats['mode'][0] if len(stats['mode']) == 1 else None
+        return {**stats, 'proposedFinalValue': proposed, 'round': game.current_round()}
+
+    def accept_estimate(self, game_uuid: str, final_value=None) -> tuple[dict, dict, dict]:
+        """Record the current round and advance — the durability fix (S5, E4).
+
+        Writes an append-only `EstimationResult` (the proven synchronous-write
+        pattern) BEFORE clearing hands, flips the issue to `estimated`, and moves the
+        pointer to the next pending issue. `final_value` defaults to the modal card."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        if final_value is None:
+            final_value = stats['mode'][0] if len(stats['mode']) == 1 else None
+        self.__write_round(game, issue, stats, final_value)
+        game.mark_current('estimated')
+        Issue.update(status='estimated').where(Issue.id == issue['id']).execute()
+        for changed in game.advance_to_next_pending():
+            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
+    def revote(self, game_uuid: str) -> tuple[dict, dict, dict]:
+        """Record the current (inconclusive) round, then re-open the SAME issue (E3).
+
+        Keeps the issue selected (no advance), clears hands, and increments the round.
+        The recorded round has no `final_value` — it surfaces only as a muted prior
+        reference, never on the live surface (EC2 anti-anchoring)."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        self.__write_round(game, issue, stats, final_value=None)
+        game.end_turn()
+        return game.backlog(), game.state(), game.info()
+
+    @staticmethod
+    def __write_round(game: Game, issue: dict, stats: dict, final_value) -> None:
+        """Persist one round and mirror it in memory, while hands are still set."""
+        deck_name = game.get_deck().name
+        voter_count = stats['count'] + stats['abstains']
+        round_number = game.current_round()
+        EstimationResult.create(
+            issue=issue['id'], round_number=round_number, final_value=final_value,
+            average=stats['average'], median=stats['median'], agreement=stats['agreement'],
+            deck_at_vote=deck_name, voter_count=voter_count)
+        game.record_round(round_number, final_value, stats['average'], stats['median'],
+                          stats['agreement'], deck_name, voter_count)
+
+    def backlog(self, game_uuid: str) -> dict:
+        game = self.__get_ongoing_game(game_uuid)
+        return game.backlog()
+
+    def info(self, game_uuid: str):
+        """Current info, or None if the game is no longer in memory (room emptied)."""
+        game = self.games.get(game_uuid)
+        return game.info() if game else None
+
+    def require_driver(self, game_uuid: str, player_id: str) -> None:
+        """Soft host gate (S8, EC4): raise unless `player_id` drives this session.
+
+        Server-enforced — the destructive handlers call this before mutating the
+        durable record. A fat-finger guardrail, explicitly NOT authentication."""
+        game = self.__get_ongoing_game(game_uuid)
+        if not game.is_driver(player_id):
+            raise NotDriverError('Only the session driver can do that')
+
+    def claim_driver(self, game_uuid: str, player_id: str) -> tuple[dict, dict]:
+        """Take over the (soft, claimable) driver role."""
+        game = self.__get_ongoing_game(game_uuid)
+        game.claim_driver(player_id)
+        return game.info(), game.state()
+
+    def select_issue(self, game_uuid: str, index: int) -> tuple[dict, dict, dict]:
+        """Move the pointer and persist the resulting status changes (S4)."""
+        game = self.__get_ongoing_game(game_uuid)
+        changed = game.select_issue(index)
+        for issue in changed:
+            Issue.update(status=issue['status']).where(Issue.id == issue['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
+    def park_issue(self, game_uuid: str, status='refinement', reason=None) -> tuple[dict, dict, dict]:
+        """Flag the current issue needs-refinement / skipped and advance (S6)."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        if status not in ('refinement', 'skipped'):
+            status = 'refinement'
+        game.park_current(status, reason)
+        Issue.update(status=status, park_reason=reason).where(Issue.id == issue['id']).execute()
+        for changed in game.advance_to_next_pending():
+            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
+    @staticmethod
+    def __hydrate_backlog(game: Game, stored_game: StoredGame) -> None:
+        """Rebuild the in-memory issue queue from the database on cache-miss (S1, E5).
+
+        Accepted results and queue position always survive a worker restart; the
+        active issue simply re-opens for voting (in-flight pre-reveal votes are not
+        persisted, by design)."""
+        issues = []
+        current = None
+        for idx, issue in enumerate(stored_game.issues.order_by(Issue.order_index)):
+            issues.append({
+                'id': issue.id,
+                'key': issue.jira_key,
+                'summary': issue.summary,
+                'description': issue.description,
+                'url': issue.url,
+                'status': issue.status,
+                'parkReason': issue.park_reason,
+                'orderIndex': issue.order_index,
+            })
+            if issue.status == 'estimating' and current is None:
+                current = idx
+        if current is None:
+            for idx, item in enumerate(issues):
+                if item['status'] in ('pending', 'estimating'):
+                    current = idx
+                    break
+        results = {}
+        for issue in stored_game.issues:
+            rows = list(issue.results.order_by(EstimationResult.round_number))
+            if rows:
+                results[issue.id] = [{
+                    'round': r.round_number,
+                    'finalValue': r.final_value,
+                    'average': r.average,
+                    'median': r.median,
+                    'agreement': r.agreement,
+                    'deck': r.deck_at_vote,
+                    'voterCount': r.voter_count,
+                } for r in rows]
+        game.set_backlog(issues, current, results)
 
     @staticmethod
     def __get_deck(deck_name) -> Deck:

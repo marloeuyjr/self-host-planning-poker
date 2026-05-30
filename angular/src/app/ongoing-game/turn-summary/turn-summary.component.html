@@ -1,46 +1,88 @@
-<div class="turn-summary container py-4">
-  <div class="row g-4 align-items-stretch" *transloco="let t; read 'turnSummary'">
+<div class="turn-summary container py-4" *transloco="let t; read 'turnSummary'">
 
-    <!-- Vote distribution -->
+  <!-- Backlog games: round number + consensus / divergence verdict (E3) -->
+  <div class="turn-summary__status" *ngIf="isBacklogGame() && results">
+    <span class="turn-summary__round">{{ t('round', { round: results.round }) }}</span>
+    <span class="turn-summary__verdict"
+          [class.is-consensus]="results.consensus"
+          [class.is-divergent]="!results.consensus">
+      {{ results.consensus ? t('consensus') : t('divergence') }}
+    </span>
+  </div>
+
+  <div class="row g-4 align-items-stretch">
+    <!-- Vote distribution (server-side) -->
     <div class="col-12 col-md-7 col-lg-8">
-      <div class="turn-summary__distribution">
-        <div *ngFor="let item of $counts | async | keyvalue: valueDescOrder; index as i"
+      <div class="turn-summary__distribution" *ngIf="hasVotes; else noVotes">
+        <div *ngFor="let item of distributionEntries; index as i"
              class="turn-summary__bucket"
              [class.is-winner]="i === 0">
           <div class="card-border turn-summary__card"
                [class.is-winner]="i === 0"
                [class.is-muted]="i > 0">
-            <div class="card-value">
-              {{ displayCardValue(deck, Number(item.key)) }}
-            </div>
+            <div class="card-value">{{ displayCardValue(deck, Number(item.key)) }}</div>
           </div>
-          <p class="turn-summary__bucket-label">
-            {{ t('votes-label', { votes: item.value }) }}
-          </p>
+          <p class="turn-summary__bucket-label">{{ t('votes-label', { votes: item.value }) }}</p>
         </div>
       </div>
+      <ng-template #noVotes><p class="turn-summary__empty">{{ t('no-votes') }}</p></ng-template>
     </div>
 
     <!-- Metrics -->
     <div class="col-12 col-md-5 col-lg-4">
       <div class="turn-summary__metrics">
-        <div class="turn-summary__metric">
+        <div class="turn-summary__metric" *ngIf="isNumeric">
           <p class="metric-label mb-1">{{ t('average-label') }}</p>
           <p class="metric-value mb-0">
-            {{
-              deck.textValues
-              ? displayCardValue(deck, round(average)) || '−'
-              : (average | translocoDecimal: { maximumFractionDigits: 1 })
-            }}
+            <ng-container *ngIf="averageValue !== null; else dash">{{ averageValue | translocoDecimal: { maximumFractionDigits: 1 } }}</ng-container>
           </p>
         </div>
         <div class="turn-summary__metric">
           <p class="metric-label mb-1">{{ t('agreement-label') }}</p>
           <p class="metric-value mb-0" #agreementElement [ngClass]="agreementClass()">
-            {{ agreement === 0 ? '−' : agreement | translocoPercent: { maximumFractionDigits: 0 } }}
+            <ng-container *ngIf="agreementPercent !== null; else dash">{{ agreementPercent }}%</ng-container>
           </p>
+        </div>
+        <div class="turn-summary__metric" *ngIf="isNumeric">
+          <p class="metric-label mb-1">{{ t('median-label') }}</p>
+          <p class="metric-value mb-0">
+            <ng-container *ngIf="medianValue !== null; else dash">{{ medianValue }}</ng-container>
+          </p>
+        </div>
+        <div class="turn-summary__metric" *ngIf="isNumeric && rangeDisplay">
+          <p class="metric-label mb-1">{{ t('range-label') }}</p>
+          <p class="metric-value mb-0">{{ rangeDisplay }}</p>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Backlog games: driver accept / re-vote controls (E4); gated to the driver (S8) -->
+  <div class="turn-summary__controls" *ngIf="isBacklogGame() && results && isDriver">
+    <div class="turn-summary__final">
+      <span class="metric-label">{{ t('final-label') }}</span>
+      <div class="turn-summary__final-cards">
+        <button *ngFor="let card of deck.values" type="button"
+                class="turn-summary__final-card"
+                [class.is-selected]="finalValueInput === card.value"
+                (click)="setFinalValue(card.value)">{{ card.display }}</button>
+      </div>
+    </div>
+    <div class="turn-summary__actions">
+      <button class="btn btn-outline-secondary" type="button" (click)="revote()">{{ t('revote') }}</button>
+      <button class="btn btn-primary" type="button" (click)="accept()" [disabled]="finalValueInput === null">{{ t('accept') }}</button>
+    </div>
+  </div>
+  <p class="turn-summary__hint" *ngIf="isBacklogGame() && results && !isDriver">{{ t('driver-only') }}</p>
+  <p class="turn-summary__hint" *ngIf="showDecideHint()">{{ t('decide-hint') }}</p>
+
+  <!-- Prior rounds — muted reference only (anti-anchoring, EC2) -->
+  <div class="turn-summary__prior" *ngIf="isBacklogGame() && priorRounds.length">
+    <span class="metric-label">{{ t('prior-label') }}</span>
+    <span class="turn-summary__prior-chip" *ngFor="let r of priorRounds">
+      {{ t('prior-round', { round: r.round, value: r.finalValue !== null ? r.finalValue : (r.average !== null ? r.average : '?') }) }}
+    </span>
+  </div>
+
+  <ng-template #dash>−</ng-template>
 </div>

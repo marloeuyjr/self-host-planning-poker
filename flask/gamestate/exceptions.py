@@ -24,3 +24,19 @@ class InvalidCardValueError(PlanningPokerException):
 
 class SpectatorCannotPlayError(PlanningPokerException):
     code = 4006
+
+
+class InvalidBacklogError(PlanningPokerException):
+    code = 4007
+
+
+class NotDriverError(PlanningPokerException):
+    code = 4008
+
+
+class IssueNotInBacklogError(PlanningPokerException):
+    code = 4009
+
+
+class NoCurrentIssueError(PlanningPokerException):
+    code = 4010

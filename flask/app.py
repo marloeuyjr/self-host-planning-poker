@@ -11,13 +11,18 @@ from peewee import SqliteDatabase, OperationalError
 from permission_check import check_db_file_permissions
 from gamestate.exceptions import PlanningPokerException
 from gamestate.game_manager import GameManager
-from gamestate.models import database_proxy, StoredGame
+from gamestate.intake import parse_issues
+from gamestate.models import database_proxy, StoredGame, create_tables
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-if app.config['DEBUG']:
-    real_db = SqliteDatabase('database.db')
+# DATABASE_PATH lets a test (or a dev) point the DB at a scratch file and take the
+# dev-style socketio/CORS setup without the /data permission check. Prod sets nothing,
+# so behaviour is unchanged there.
+db_override = os.getenv('DATABASE_PATH')
+if app.config['DEBUG'] or db_override:
+    real_db = SqliteDatabase(db_override or 'database.db')
     socketio = SocketIO(app, cors_allowed_origins=[
         'http://localhost:4200', 'http://localhost:5000',
         'http://127.0.0.1:4200', 'http://127.0.0.1:5000'
@@ -30,7 +35,7 @@ else:
 database_proxy.initialize(real_db)
 if database_proxy.is_closed():
     database_proxy.connect()
-StoredGame.create_table()
+create_tables()
 
 gm = GameManager()
 
@@ -46,7 +51,15 @@ def create():
     body = request.json
     game_name = body['name']
     game_deck = body['deck']
-    return gm.create(game_name, game_deck)
+    # Optional starting backlog (S3). Parsed here on the request thread — never a
+    # Jira API call, never inside a Socket.IO handler (E1).
+    backlog_text = body.get('backlog')
+    backlog_format = body.get('backlogFormat', 'paste')
+    try:
+        issues = parse_issues(backlog_text, backlog_format) if backlog_text else None
+        return gm.create(game_name, game_deck, issues, source=backlog_format if issues else None)
+    except PlanningPokerException as e:
+        return str(e), 400
 
 
 @app.route('/<string:file>.<string:ext>')
@@ -70,18 +83,26 @@ def serve_assets(path):
 @socketio.event
 def join(data):
     player_id = str(uuid.uuid4())
-    session['player_id'] = player_id
     player_name = data['name']
     spectator = data['spectator']
     game_id = data['game']
+    token = data.get('token')   # localStorage rejoin token (S7) — reattach, not auth
 
     session['game_id'] = game_id
     join_room(game_id)
 
-    info, state = gm.join_game(game_id, player_id, player_name, spectator)
+    info, state, player_id, resumed = gm.join_game(game_id, player_id, player_name, spectator, token)
+    session['player_id'] = player_id
     emit('state', state, to=game_id, json=True)
 
+    # Hand the room the current backlog so late joiners see the queue + pointer (S4).
+    backlog = gm.backlog(game_id)
+    if backlog['issues']:
+        emit('backlog', backlog, to=game_id, json=True)
+
     info['playerId'] = player_id
+    if resumed:
+        info['resumed'] = True
     return info
 
 
@@ -93,6 +114,10 @@ def disconnect():
     state = gm.leave_game(game_id, player_id)
     leave_room(game_id)
     emit('state', state, to=game_id, json=True)
+    # Re-broadcast info so a driver auto-handoff (S8) reaches the remaining clients.
+    info = gm.info(game_id)
+    if info:
+        emit('info', info, to=game_id, json=True)
 
     session['player_id'] = None
     session['game_id'] = None
@@ -112,7 +137,17 @@ def set_deck(data):
     game_id = session['game_id']
     deck_name = data['deck']
 
+    gm.require_driver(game_id, session['player_id'])
     info, state = gm.set_deck(game_id, deck_name)
+    emit('info', info, to=game_id, json=True)
+    emit('state', state, to=game_id, json=True)
+
+
+@socketio.event
+def claim_driver():
+    game_id = session['game_id']
+
+    info, state = gm.claim_driver(game_id, session['player_id'])
     emit('info', info, to=game_id, json=True)
     emit('state', state, to=game_id, json=True)
 
@@ -151,15 +186,70 @@ def pick_card(data):
 def reveal_cards():
     game_id = session['game_id']
 
-    state, info = gm.reveal_cards(game_id)
+    gm.require_driver(game_id, session['player_id'])
+    state, info, results = gm.reveal_cards(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
+    emit('results', results, to=game_id, json=True)
+
+
+@socketio.event
+def accept_estimate(data):
+    game_id = session['game_id']
+    value = data.get('value') if data else None
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog, state, info = gm.accept_estimate(game_id, value)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
+def revote():
+    game_id = session['game_id']
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog, state, info = gm.revote(game_id)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
+def select_issue(data):
+    game_id = session['game_id']
+    index = data['index']
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog, state, info = gm.select_issue(game_id, index)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
+def park_issue(data):
+    game_id = session['game_id']
+    status = (data.get('status') if data else None) or 'refinement'
+    reason = data.get('reason') if data else None
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog, state, info = gm.park_issue(game_id, status, reason)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
 
 
 @socketio.event
 def end_turn():
     game_id = session['game_id']
 
+    gm.require_driver(game_id, session['player_id'])
     state, info = gm.end_turn(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)

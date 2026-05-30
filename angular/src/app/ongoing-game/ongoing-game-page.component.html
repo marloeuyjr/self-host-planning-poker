@@ -8,7 +8,13 @@
   </ng-container>
 
   <ng-container content>
-    <shpp-card-table class="flex-grow-1" />
+    <shpp-current-issue />
+    <div class="game-body">
+      <shpp-queue-rail />
+      <div class="game-table-column">
+        <shpp-card-table class="flex-grow-1" />
+      </div>
+    </div>
     <shpp-turn-summary *ngIf="showSummary" class="bg-body-secondary" />
     <shpp-card-picker *ngIf="!showSummary" class="bg-body-secondary" />
   </ng-container>

@@ -14,3 +14,24 @@ shpp-turn-summary,
 shpp-card-picker {
   min-height: 250px;
 }
+
+// The queue rail (left) + card table (right) share the main band. min-height: 0
+// lets each child manage its own scroll instead of overflowing the flex parent.
+.game-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.game-table-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .game-body {
+    flex-direction: column;
+  }
+}

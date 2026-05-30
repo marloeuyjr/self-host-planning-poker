@@ -297,15 +297,128 @@ class GameTestCase(unittest.TestCase):
     def test_game_info(self):
         game_name1 = 'Fizz'
         game1 = Game(game_name1)
-        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False})
+        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False, 'driverId': None})
 
         game_name2 = 'Buzz'
         game2 = Game(game_name2, Deck.POWERS)
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'driverId': None})
         game2.reveal_hands()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True, 'driverId': None})
         game2.end_turn()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'driverId': None})
+
+    def test_first_joiner_becomes_driver_and_hands_off_on_leave(self):
+        game = Game('Sprint')
+        game.player_joins('a', Mock())
+        self.assertTrue(game.is_driver('a'))
+        game.player_joins('b', Mock())
+        self.assertTrue(game.is_driver('a'))      # still the first joiner
+        self.assertFalse(game.is_driver('b'))
+        game.player_leaves('a')                   # driver leaves
+        self.assertTrue(game.is_driver('b'))      # auto-handoff to whoever remains
+        self.assertEqual(game.info()['driverId'], 'b')
+
+    def test_claim_driver_takes_over(self):
+        game = Game('Sprint')
+        game.player_joins('a', Mock())
+        game.player_joins('b', Mock())
+        game.claim_driver('b')
+        self.assertTrue(game.is_driver('b'))
+        self.assertFalse(game.is_driver('a'))
+        game.claim_driver('ghost')                # not a present player → ignored
+        self.assertTrue(game.is_driver('b'))
+
+    def test_set_and_expose_backlog(self):
+        game = Game('Sprint')
+        self.assertFalse(game.has_backlog())
+        issues = [{'id': 1, 'key': 'OPS-1', 'summary': 's', 'status': 'pending', 'orderIndex': 0}]
+        game.set_backlog(issues, current=0, results={1: [{'round': 1}]})
+        self.assertTrue(game.has_backlog())
+        payload = game.backlog()
+        self.assertEqual(payload['issues'], issues)
+        self.assertEqual(payload['currentIndex'], 0)
+        self.assertEqual(payload['results'], {1: [{'round': 1}]})
+
+    @staticmethod
+    def _backlog():
+        return [
+            {'id': 1, 'key': 'OPS-1', 'summary': 'a', 'status': 'pending', 'orderIndex': 0},
+            {'id': 2, 'key': 'OPS-2', 'summary': 'b', 'status': 'pending', 'orderIndex': 1},
+            {'id': 3, 'key': 'OPS-3', 'summary': 'c', 'status': 'pending', 'orderIndex': 2},
+        ]
+
+    def test_select_issue_moves_pointer_and_flips_status(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        game.set_backlog(issues, current=None)
+        changed = game.select_issue(1)
+        self.assertEqual(game.backlog()['currentIndex'], 1)
+        self.assertEqual(issues[1]['status'], 'estimating')
+        self.assertIn(issues[1], changed)
+        self.assertEqual(game.current_issue()['key'], 'OPS-2')
+
+    def test_select_issue_reverts_unfinished_previous(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'estimating'
+        game.set_backlog(issues, current=0)
+        changed = game.select_issue(1)
+        self.assertEqual(issues[0]['status'], 'pending')   # never completed → reverted
+        self.assertEqual(issues[1]['status'], 'estimating')
+        self.assertIn(issues[0], changed)
+
+    def test_select_issue_preserves_a_completed_estimate(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'estimated'
+        game.set_backlog(issues, current=0)
+        game.select_issue(1)
+        self.assertEqual(issues[0]['status'], 'estimated')  # terminal status preserved
+
+    def test_select_issue_reopens_a_parked_issue(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[2]['status'] = 'refinement'
+        game.set_backlog(issues, current=0)
+        game.select_issue(2)
+        self.assertEqual(issues[2]['status'], 'estimating')  # re-opened (S6)
+
+    def test_select_issue_clears_table(self):
+        game = Game('Sprint')
+        game.set_backlog(self._backlog(), current=0)
+        player = Mock()
+        player.configure_mock(**{'spectator': False})
+        game.player_joins('p', player)
+        game.reveal_hands()
+        game.select_issue(1)
+        self.assertFalse(game.get_revealed())
+        player.clear_hand.assert_called()
+
+    def test_select_issue_out_of_range_raises(self):
+        from gamestate.exceptions import IssueNotInBacklogError
+        game = Game('Sprint')
+        game.set_backlog(self._backlog(), current=0)
+        with self.assertRaises(IssueNotInBacklogError):
+            game.select_issue(9)
+
+    def test_rejoin_token_reattaches_same_slot(self):
+        game = Game('Sprint')
+        p1 = Mock()
+        p1.configure_mock(**{'spectator': False})
+        eff1 = game.player_joins('id-1', p1, token='tok')
+        self.assertEqual(eff1, 'id-1')
+        # Same human rejoins (same token) while still present → reuse id, no duplicate.
+        p1b = Mock()
+        p1b.configure_mock(**{'spectator': False})
+        eff2 = game.player_joins('id-2', p1b, token='tok')
+        self.assertEqual(eff2, 'id-1')
+        self.assertEqual(game.list_players_uuid(), ['id-1'])
+
+    def test_join_without_token_keeps_distinct_players(self):
+        game = Game('Sprint')
+        game.player_joins('id-1', Mock())
+        game.player_joins('id-2', Mock())
+        self.assertEqual(len(game.list_players_uuid()), 2)
 
 
 if __name__ == '__main__':

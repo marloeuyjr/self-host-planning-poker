@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
-import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, GameInfo, GameState } from '../model/events';
+import { BehaviorSubject, combineLatest, filter, map, Observable, Subject } from 'rxjs';
+import { BacklogState, ErrorMessage, GameInfo, GameState, Issue, RoundResults } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { HashMap, TranslocoService } from '@ngneat/transloco';
@@ -25,6 +25,8 @@ export class CurrentGameService {
   private stateSubject = new BehaviorSubject<GameState>({});
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
+  private backlogSubject = new BehaviorSubject<BacklogState | null>(null);
+  private resultsSubject = new BehaviorSubject<RoundResults | null>(null);
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -46,7 +48,12 @@ export class CurrentGameService {
 
     this.socket.on('state', (state: GameState) => this.stateSubject.next(state));
     this.socket.on('info', (info: GameInfo) => this.infoSubject.next(info));
-    this.socket.on('new_game', () => this.newGameSubject.next());
+    this.socket.on('new_game', () => {
+      this.newGameSubject.next();
+      this.resultsSubject.next(null);   // a new round starts — drop the stale summary
+    });
+    this.socket.on('backlog', (backlog: BacklogState) => this.backlogSubject.next(backlog));
+    this.socket.on('results', (results: RoundResults) => this.resultsSubject.next(results));
 
     this.socket.on('disconnect', (reason) => {
       if (reason !== 'io client disconnect') {
@@ -91,6 +98,35 @@ export class CurrentGameService {
     return this.newGameSubject.asObservable();
   }
 
+  public get backlog$(): Observable<BacklogState | null> {
+    return this.backlogSubject.asObservable();
+  }
+
+  /** The issue currently under the pointer, or null when there is no backlog. */
+  public get currentIssue$(): Observable<Issue | null> {
+    return this.backlogSubject.asObservable().pipe(
+      map((backlog: BacklogState | null) =>
+        backlog && backlog.currentIndex !== null ? backlog.issues[backlog.currentIndex] ?? null : null)
+    );
+  }
+
+  public get hasBacklog$(): Observable<boolean> {
+    return this.backlogSubject.asObservable().pipe(
+      map((backlog: BacklogState | null) => !!backlog && backlog.issues.length > 0)
+    );
+  }
+
+  public get results$(): Observable<RoundResults | null> {
+    return this.resultsSubject.asObservable();
+  }
+
+  /** Whether the local player holds the soft driver role (S8). */
+  public get isDriver$(): Observable<boolean> {
+    return combineLatest([this.infoSubject.asObservable(), this.userInformation.playerIdObservable()]).pipe(
+      map(([info, playerId]) => !!info && !!info.driverId && info.driverId === playerId)
+    );
+  }
+
   public get revealed$(): Observable<boolean> {
     return this.gameInfo$.pipe(
       map((info: GameInfo | null) => info !== null ? info.revealed : false)
@@ -111,7 +147,8 @@ export class CurrentGameService {
     .emitWithAck('join', {
       game: gameId,
       name: this.userInformation.getName(),
-      spectator: this.userInformation.isSpectator()
+      spectator: this.userInformation.isSpectator(),
+      token: this.getOrCreateRejoinToken(gameId)
     })
     .then((response: GameInfo | ErrorMessage) => {
         if ('error' in response) {
@@ -121,6 +158,9 @@ export class CurrentGameService {
         } else {
           this.infoSubject.next(response);
           this.userInformation.setPlayerIdSubject(response.playerId);
+          if (response.resumed) {
+            this.info('resume.notice');   // "session resumed — re-vote the current issue"
+          }
           return true;
         }
       },
@@ -134,6 +174,28 @@ export class CurrentGameService {
     this.socket.disconnect();
     this.stateSubject.next({});
     this.infoSubject.next(null);
+    this.backlogSubject.next(null);
+    this.resultsSubject.next(null);
+  }
+
+  public selectIssue(index: number): void {
+    this.socket.emit('select_issue', { index: index }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public acceptEstimate(value: number | null): void {
+    this.socket.emit('accept_estimate', { value: value }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public revote(): void {
+    this.socket.emit('revote', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public parkIssue(status: 'refinement' | 'skipped', reason: string | null): void {
+    this.socket.emit('park_issue', { status: status, reason: reason }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public claimDriver(): void {
+    this.socket.emit('claim_driver', (response?: ErrorMessage) => this.handleError(response));
   }
 
   public renameGame(newName: string): void {
@@ -154,6 +216,28 @@ export class CurrentGameService {
 
   public endTurn(): void {
     this.socket.emit('end_turn', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /**
+   * A stable per-session rejoin token kept in localStorage (S7, EC3). Sent on join
+   * so a reconnect / reload reattaches to the same player identity instead of
+   * minting a fresh one. This is continuity, NOT authentication.
+   */
+  private getOrCreateRejoinToken(gameId: string): string {
+    const key = `shpp-rejoin-${gameId}`;
+    try {
+      let token = localStorage.getItem(key);
+      if (!token) {
+        token = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `${gameId}-${Date.now()}`;
+        localStorage.setItem(key, token);
+      }
+      return token;
+    } catch {
+      // localStorage unavailable (private mode / blocked) — fall back to a volatile id.
+      return `${gameId}-${Date.now()}`;
+    }
   }
 
   private handleError(error?: ErrorMessage | any): void {

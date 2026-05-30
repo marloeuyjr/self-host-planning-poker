@@ -12,6 +12,18 @@
         </ng-container>
       </select>
     </div>
+    <div class="mb-3" *ngIf="isNewGame()">
+      <label [for]="backlogInput" class="form-label">{{ t('backlog-label') }}</label>
+      <div class="btn-group btn-group-sm mb-2 d-flex" role="group">
+        <input type="radio" class="btn-check" formControlName="backlogFormat" value="paste" id="fmtPaste">
+        <label class="btn btn-outline-secondary" for="fmtPaste">{{ t('format-paste') }}</label>
+        <input type="radio" class="btn-check" formControlName="backlogFormat" value="csv" id="fmtCsv">
+        <label class="btn btn-outline-secondary" for="fmtCsv">{{ t('format-csv') }}</label>
+      </div>
+      <textarea class="form-control font-monospace" formControlName="backlog" rows="6"
+                [placeholder]="t('backlog-placeholder')" #backlogInput></textarea>
+      <small class="form-text text-body-secondary">{{ t('backlog-hint') }}</small>
+    </div>
     <button class="btn btn-primary" type="submit" [disabled]="formGroup.invalid" (click)="validate()">
       {{ isNewGame() ? t('createButton-label') : t('updateButton-label') }}
     </button>

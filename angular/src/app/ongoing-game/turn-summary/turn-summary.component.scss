@@ -104,3 +104,111 @@
     padding-top: 1rem;
   }
 }
+
+// --- S5: round verdict + accept / re-vote controls (backlog games) ---
+
+.turn-summary__status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.turn-summary__round {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--brand-text-secondary);
+}
+
+.turn-summary__verdict {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--brand-hairline-strong);
+
+  &.is-consensus { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
+  &.is-divergent { color: #FCD34D; border-color: #FCD34D; }
+}
+
+.turn-summary__empty {
+  color: var(--brand-text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.turn-summary__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--brand-hairline-strong);
+}
+
+.turn-summary__final {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.turn-summary__final-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+// Compact selectable chips for the final value — the proposed mode starts selected.
+.turn-summary__final-card {
+  min-width: 2.1rem;
+  padding: 0.2rem 0.5rem;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--brand-text-secondary);
+  background: transparent;
+  border: 1px solid var(--brand-hairline-strong);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
+
+  &:hover { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
+
+  &.is-selected {
+    color: var(--brand-slate-900);
+    background: var(--brand-emerald-500);
+    border-color: var(--brand-emerald-500);
+    font-weight: 600;
+  }
+}
+
+.turn-summary__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.turn-summary__hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: #FCD34D;
+}
+
+.turn-summary__prior {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.turn-summary__prior-chip {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--brand-text-muted);
+  padding: 0.05rem 0.4rem;
+  border: 1px dashed var(--brand-hairline);
+  border-radius: 0.5rem;
+}

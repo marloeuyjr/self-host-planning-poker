@@ -1,0 +1,157 @@
+// Left rail — flat slate-800 panel, single hairline, no nested cards. Status is
+// carried by a small dot + chip so the list stays dense and scannable.
+.queue-rail {
+  display: flex;
+  flex-direction: column;
+  width: 17rem;
+  flex: 0 0 auto;
+  background: var(--brand-surface-2);
+  border-right: 1px solid var(--brand-hairline);
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.queue-rail--collapsed {
+  width: auto;
+}
+
+.queue-rail__head {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--brand-hairline);
+  position: sticky;
+  top: 0;
+  background: var(--brand-surface-2);
+  z-index: 1;
+}
+
+.queue-rail__toggle {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--brand-text-primary);
+}
+
+.queue-rail__title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-text-secondary);
+}
+
+.queue-rail__count {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.8rem;
+  color: var(--brand-emerald-400);
+}
+
+// Thin X-of-N progress bar — the only adornment.
+.queue-rail__bar {
+  margin-top: 0.5rem;
+  height: 3px;
+  background: var(--brand-slate-700);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.queue-rail__bar-fill {
+  height: 100%;
+  background: var(--brand-emerald-500);
+  transition: width var(--brand-motion-base) var(--brand-motion-ease, ease-out);
+}
+
+.queue-rail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.queue-rail__item {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--brand-hairline);
+  cursor: pointer;
+  transition: background var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
+
+  &:hover {
+    background: var(--brand-surface-3);
+  }
+
+  &.is-current {
+    background: color-mix(in srgb, var(--brand-emerald-500) 14%, transparent);
+    box-shadow: inset 2px 0 0 var(--brand-emerald-500);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-emerald-500);
+    outline-offset: -2px;
+  }
+
+  // Non-drivers can read the queue but not jump it (S8).
+  &.is-locked {
+    cursor: default;
+  }
+  &.is-locked:hover {
+    background: transparent;
+  }
+}
+
+.queue-rail__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-slate-500);
+
+  &[data-status='estimating'] { background: var(--brand-emerald-400); }
+  &[data-status='estimated']  { background: var(--brand-emerald-600); }
+  &[data-status='refinement'],
+  &[data-status='skipped']    { background: var(--brand-slate-600); }
+}
+
+.queue-rail__key {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.78rem;
+  color: var(--brand-text-secondary);
+  white-space: nowrap;
+}
+
+.queue-rail__summary {
+  font-size: 0.82rem;
+  color: var(--brand-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-rail__chip {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--brand-hairline-strong);
+  color: var(--brand-text-muted);
+
+  &[data-status='estimating'] { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
+  &[data-status='estimated']  { color: var(--brand-emerald-400); border-color: var(--brand-emerald-600); }
+  &[data-status='refinement'],
+  &[data-status='skipped']    { color: var(--brand-text-secondary); }
+}
+
+// Stack the rail above the table on narrow viewports.
+@media (max-width: 768px) {
+  .queue-rail {
+    width: 100%;
+    max-height: 35vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--brand-hairline);
+  }
+}

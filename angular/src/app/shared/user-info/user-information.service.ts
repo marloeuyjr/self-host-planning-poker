@@ -50,6 +50,10 @@ export class UserInformationService {
     return this.playerIdSubject.getValue();
   }
 
+  playerIdObservable(): Observable<string | undefined> {
+    return this.playerIdSubject.asObservable();
+  }
+
   private loadFromLocalStorage(key: string): any {
     try {
       return localStorage.getItem(key);
