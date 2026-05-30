@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
-import { BacklogState, ErrorMessage, GameInfo, GameState, Issue } from '../model/events';
+import { BacklogState, ErrorMessage, GameInfo, GameState, Issue, RoundResults } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { HashMap, TranslocoService } from '@ngneat/transloco';
@@ -26,6 +26,7 @@ export class CurrentGameService {
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
   private backlogSubject = new BehaviorSubject<BacklogState | null>(null);
+  private resultsSubject = new BehaviorSubject<RoundResults | null>(null);
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -47,8 +48,12 @@ export class CurrentGameService {
 
     this.socket.on('state', (state: GameState) => this.stateSubject.next(state));
     this.socket.on('info', (info: GameInfo) => this.infoSubject.next(info));
-    this.socket.on('new_game', () => this.newGameSubject.next());
+    this.socket.on('new_game', () => {
+      this.newGameSubject.next();
+      this.resultsSubject.next(null);   // a new round starts — drop the stale summary
+    });
     this.socket.on('backlog', (backlog: BacklogState) => this.backlogSubject.next(backlog));
+    this.socket.on('results', (results: RoundResults) => this.resultsSubject.next(results));
 
     this.socket.on('disconnect', (reason) => {
       if (reason !== 'io client disconnect') {
@@ -111,6 +116,10 @@ export class CurrentGameService {
     );
   }
 
+  public get results$(): Observable<RoundResults | null> {
+    return this.resultsSubject.asObservable();
+  }
+
   public get revealed$(): Observable<boolean> {
     return this.gameInfo$.pipe(
       map((info: GameInfo | null) => info !== null ? info.revealed : false)
@@ -155,10 +164,19 @@ export class CurrentGameService {
     this.stateSubject.next({});
     this.infoSubject.next(null);
     this.backlogSubject.next(null);
+    this.resultsSubject.next(null);
   }
 
   public selectIssue(index: number): void {
     this.socket.emit('select_issue', { index: index }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public acceptEstimate(value: number | null): void {
+    this.socket.emit('accept_estimate', { value: value }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public revote(): void {
+    this.socket.emit('revote', (response?: ErrorMessage) => this.handleError(response));
   }
 
   public renameGame(newName: string): void {

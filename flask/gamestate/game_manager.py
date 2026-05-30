@@ -4,10 +4,12 @@ from typing import Optional
 from peewee import DoesNotExist
 
 from gamestate.deck import Deck
-from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, GameNotOngoingError
+from gamestate.exceptions import (GameDoesNotExistError, DeckDoesNotExistError,
+                                  GameNotOngoingError, NoCurrentIssueError)
 from gamestate.game import Game
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
+from gamestate.stats import compute_stats
 
 
 class GameManager:
@@ -105,15 +107,71 @@ class GameManager:
         game.player_picks(player_uuid, pick)
         return game.state()
 
-    def reveal_cards(self, game_uuid: str) -> tuple[dict, dict]:
+    def reveal_cards(self, game_uuid: str) -> tuple[dict, dict, dict]:
+        """Reveal and compute the round's stats server-side (S5, no browser math)."""
         game = self.__get_ongoing_game(game_uuid)
         game.reveal_hands()
-        return game.state(), game.info()
+        return game.state(), game.info(), self.__round_results(game)
 
     def end_turn(self, game_uuid: str) -> tuple[dict, dict]:
         game = self.__get_ongoing_game(game_uuid)
         game.end_turn()
         return game.state(), game.info()
+
+    @staticmethod
+    def __round_results(game: Game) -> dict:
+        """Server-computed stats for the current hands + the proposed final value (E4)."""
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        proposed = stats['mode'][0] if len(stats['mode']) == 1 else None
+        return {**stats, 'proposedFinalValue': proposed, 'round': game.current_round()}
+
+    def accept_estimate(self, game_uuid: str, final_value=None) -> tuple[dict, dict, dict]:
+        """Record the current round and advance — the durability fix (S5, E4).
+
+        Writes an append-only `EstimationResult` (the proven synchronous-write
+        pattern) BEFORE clearing hands, flips the issue to `estimated`, and moves the
+        pointer to the next pending issue. `final_value` defaults to the modal card."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        if final_value is None:
+            final_value = stats['mode'][0] if len(stats['mode']) == 1 else None
+        self.__write_round(game, issue, stats, final_value)
+        game.mark_current('estimated')
+        Issue.update(status='estimated').where(Issue.id == issue['id']).execute()
+        for changed in game.advance_to_next_pending():
+            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
+    def revote(self, game_uuid: str) -> tuple[dict, dict, dict]:
+        """Record the current (inconclusive) round, then re-open the SAME issue (E3).
+
+        Keeps the issue selected (no advance), clears hands, and increments the round.
+        The recorded round has no `final_value` — it surfaces only as a muted prior
+        reference, never on the live surface (EC2 anti-anchoring)."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        stats = compute_stats(game.get_cast_votes(), game.get_deck())
+        self.__write_round(game, issue, stats, final_value=None)
+        game.end_turn()
+        return game.backlog(), game.state(), game.info()
+
+    @staticmethod
+    def __write_round(game: Game, issue: dict, stats: dict, final_value) -> None:
+        """Persist one round and mirror it in memory, while hands are still set."""
+        deck_name = game.get_deck().name
+        voter_count = stats['count'] + stats['abstains']
+        round_number = game.current_round()
+        EstimationResult.create(
+            issue=issue['id'], round_number=round_number, final_value=final_value,
+            average=stats['average'], median=stats['median'], agreement=stats['agreement'],
+            deck_at_vote=deck_name, voter_count=voter_count)
+        game.record_round(round_number, final_value, stats['average'], stats['median'],
+                          stats['agreement'], deck_name, voter_count)
 
     def backlog(self, game_uuid: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)

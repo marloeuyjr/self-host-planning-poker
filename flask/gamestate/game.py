@@ -137,3 +137,53 @@ class Game:
                 changed.append(issue)
         self.end_turn()
         return changed
+
+    def get_cast_votes(self) -> list:
+        """The hands of non-spectators who have picked — the input to stats (S5)."""
+        return [p.get_hand() for p in self.get_non_spectator_players() if p.has_picked_card()]
+
+    def current_round(self) -> int:
+        """1-based round number for the current issue: one past what's been recorded."""
+        issue = self.current_issue()
+        if issue is None:
+            return 1
+        return len(self.__results.get(issue['id'], [])) + 1
+
+    def record_round(self, round_number: int, final_value, average, median,
+                     agreement, deck_name: str, voter_count: int) -> None:
+        """Mirror a recorded round into the in-memory results so the backlog payload
+        and `current_round()` stay correct without re-reading the DB (S5)."""
+        issue = self.current_issue()
+        if issue is None:
+            return
+        self.__results.setdefault(issue['id'], []).append({
+            'round': round_number,
+            'finalValue': final_value,
+            'average': average,
+            'median': median,
+            'agreement': agreement,
+            'deck': deck_name,
+            'voterCount': voter_count,
+        })
+
+    def mark_current(self, status: str) -> Optional[dict]:
+        issue = self.current_issue()
+        if issue is not None:
+            issue['status'] = status
+        return issue
+
+    def advance_to_next_pending(self) -> list:
+        """Move the pointer to the next still-`pending` issue (wrapping once so no
+        pending issue is stranded) and re-open it; clear the table. Returns the list
+        of changed issue dicts to persist. Pointer becomes None when none remain."""
+        start = (self.__current + 1) if self.__current is not None else 0
+        order = list(range(start, len(self.__backlog))) + list(range(0, start))
+        next_index = next((i for i in order if self.__backlog[i]['status'] == 'pending'), None)
+        self.__current = next_index
+        changed = []
+        if next_index is not None:
+            issue = self.__backlog[next_index]
+            issue['status'] = 'estimating'
+            changed.append(issue)
+        self.end_turn()
+        return changed

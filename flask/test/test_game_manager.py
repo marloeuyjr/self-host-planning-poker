@@ -6,9 +6,10 @@ from peewee import SqliteDatabase
 
 from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, \
-    GameNotOngoingError
+    GameNotOngoingError, NoCurrentIssueError
 from gamestate.game_manager import GameManager
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy, create_tables
+from gamestate.player import Player
 
 
 class GameManagerTestCase(unittest.TestCase):
@@ -223,17 +224,8 @@ class GameManagerTestCase(unittest.TestCase):
             gm.pick_card('uuid2', 'p3', True)
         self.assertEqual(str(ex.exception), 'Game uuid2 is not ongoing')
 
-    def test_reveal_cards(self):
+    def test_reveal_cards_not_ongoing(self):
         gm = GameManager()
-        game_mock = Mock(**{'state.return_value': "{'foo': 'bar'}", 'info.return_value': "{'fizz': 'buzz'}"})
-        gm.games = {'uuid1': game_mock}
-
-        state, info = gm.reveal_cards("uuid1")
-        game_mock.reveal_hands.assert_called()
-        game_mock.state.assert_called()
-        game_mock.info.assert_called()
-        self.assertEqual(state, "{'foo': 'bar'}")
-        self.assertEqual(info, "{'fizz': 'buzz'}")
         with self.assertRaises(GameNotOngoingError) as ex:
             gm.reveal_cards('uuid2')
         self.assertEqual(str(ex.exception), 'Game uuid2 is not ongoing')
@@ -320,6 +312,107 @@ class GameManagerTestCase(unittest.TestCase):
         # A fresh GameManager (cache-miss) rehydrates the pointer onto the active issue.
         gm2 = GameManager()
         self.assertEqual(gm2.get(game_id).backlog()['currentIndex'], 1)
+
+    # --- S5: reveal -> server stats -> accept/re-vote -> advance ---
+
+    def _started_game(self, gm, votes, deck='FIBONACCI'):
+        """A 2-issue game with issue 0 selected and real players who picked `votes`."""
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', deck, issues, source='paste')
+        gm.select_issue(game_id, 0)
+        game = gm.get(game_id)
+        for i, v in enumerate(votes):
+            p = Player(f'P{i}', False)
+            game.player_joins(f'p{i}', p)
+            p.set_hand(v)
+        return game_id, game
+
+    def test_reveal_computes_server_side_stats(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [5, 5, 8])
+        state, info, results = gm.reveal_cards(game_id)
+        self.assertTrue(info['revealed'])
+        self.assertEqual(results['count'], 3)
+        self.assertEqual(results['average'], round((5 + 5 + 8) / 3, 2))
+        self.assertEqual(results['distribution'], {5: 2, 8: 1})
+        self.assertEqual(results['proposedFinalValue'], 5)   # modal card (E4)
+        self.assertEqual(results['round'], 1)
+        self.assertTrue(results['consensus'])                # 5 & 8 adjacent on Fibonacci
+
+    def test_accept_persists_before_clear_then_advances(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [3, 3, 3])
+        gm.reveal_cards(game_id)
+        issue0_id = game.current_issue()['id']
+        backlog, state, info = gm.accept_estimate(game_id)   # default final = mode = 3
+        r = EstimationResult.get(EstimationResult.issue == issue0_id)
+        self.assertEqual(r.final_value, 3.0)
+        self.assertEqual(r.round_number, 1)
+        self.assertEqual(r.voter_count, 3)
+        self.assertEqual(r.deck_at_vote, 'FIBONACCI')
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        statuses = {i.jira_key: i.status for i in sg.issues}
+        self.assertEqual(statuses['OPS-1'], 'estimated')
+        self.assertEqual(statuses['OPS-2'], 'estimating')   # advanced + re-opened
+        self.assertEqual(backlog['currentIndex'], 1)
+        self.assertFalse(info['revealed'])                  # hands cleared
+
+    def test_accept_with_overridden_value(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [3, 5])
+        gm.reveal_cards(game_id)
+        issue0_id = game.current_issue()['id']
+        gm.accept_estimate(game_id, final_value=8)
+        self.assertEqual(EstimationResult.get(EstimationResult.issue == issue0_id).final_value, 8.0)
+
+    def test_accepted_result_survives_a_restart(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [5, 5])
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id)
+        gm2 = GameManager()                                  # fresh process → cache-miss
+        payload = gm2.get(game_id).backlog()
+        issue0 = payload['issues'][0]
+        self.assertEqual(issue0['status'], 'estimated')
+        self.assertEqual(payload['results'][issue0['id']][0]['finalValue'], 5.0)
+
+    def test_revote_records_round_keeps_issue_and_increments(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [3, 13])      # divergent (>1 deck step)
+        gm.reveal_cards(game_id)
+        issue0_id = game.current_issue()['id']
+        backlog, state, info = gm.revote(game_id)
+        r = EstimationResult.get((EstimationResult.issue == issue0_id) &
+                                 (EstimationResult.round_number == 1))
+        self.assertIsNone(r.final_value)                     # inconclusive round, no final
+        self.assertEqual(backlog['currentIndex'], 0)         # same issue
+        self.assertFalse(info['revealed'])
+        self.assertEqual(game.current_issue()['status'], 'estimating')
+        self.assertEqual(game.current_round(), 2)            # next reveal is round 2
+
+    def test_revote_then_accept_appends_a_second_round(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [3, 13])
+        gm.reveal_cards(game_id)
+        gm.revote(game_id)
+        for _, p in game.list_players():
+            p.set_hand(5)                                    # round 2: consensus
+        gm.reveal_cards(game_id)
+        issue0_id = game.current_issue()['id']
+        gm.accept_estimate(game_id, final_value=5)
+        rounds = [r.round_number for r in EstimationResult.select()
+                  .where(EstimationResult.issue == issue0_id)
+                  .order_by(EstimationResult.round_number)]
+        self.assertEqual(rounds, [1, 2])
+        r2 = EstimationResult.get((EstimationResult.issue == issue0_id) &
+                                  (EstimationResult.round_number == 2))
+        self.assertEqual(r2.final_value, 5.0)
+
+    def test_accept_without_current_issue_raises(self):
+        gm = GameManager()
+        game_id = gm.create('No backlog', 'FIBONACCI')
+        with self.assertRaises(NoCurrentIssueError):
+            gm.accept_estimate(game_id)
 
 
 if __name__ == '__main__':

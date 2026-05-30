@@ -57,7 +57,19 @@
   "turnSummary": {
     "average-label": "Average:",
     "agreement-label": "Agreement:",
-    "votes-label": "{{votes}} Votes"
+    "votes-label": "{{votes}} Votes",
+    "median-label": "Median:",
+    "range-label": "Range:",
+    "round": "Round {{round}}",
+    "consensus": "Consensus",
+    "divergence": "No consensus",
+    "no-votes": "No votes cast.",
+    "final-label": "Final estimate",
+    "accept": "Accept estimate",
+    "revote": "Re-vote",
+    "decide-hint": "Two rounds without consensus — set the value or park this issue.",
+    "prior-label": "Prior:",
+    "prior-round": "R{{round}}: {{value}}"
   },
   "buttons": {
     "edit": "Edit game info",

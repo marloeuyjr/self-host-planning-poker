@@ -165,9 +165,33 @@ def pick_card(data):
 def reveal_cards():
     game_id = session['game_id']
 
-    state, info = gm.reveal_cards(game_id)
+    state, info, results = gm.reveal_cards(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
+    emit('results', results, to=game_id, json=True)
+
+
+@socketio.event
+def accept_estimate(data):
+    game_id = session['game_id']
+    value = data.get('value') if data else None
+
+    backlog, state, info = gm.accept_estimate(game_id, value)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
+def revote():
+    game_id = session['game_id']
+
+    backlog, state, info = gm.revote(game_id)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
 
 
 @socketio.event

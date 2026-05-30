@@ -50,3 +50,21 @@ export interface BacklogState {
   currentIndex: number | null;
   results: Record<number, EstimationResultView[]>;
 }
+
+/** Server-computed stats for one revealed round (S5 — no browser math). */
+export interface RoundResults {
+  numeric: boolean;
+  count: number;
+  abstains: number;
+  distribution: Record<string, number>;   // card value -> count (JSON keys are strings)
+  average: number | null;
+  median: number | null;
+  mode: number[];
+  low: number | null;
+  high: number | null;
+  agreement: number | null;
+  consensus: boolean;
+  unanimous: boolean;
+  proposedFinalValue: number | null;
+  round: number;
+}
