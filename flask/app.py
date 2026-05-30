@@ -17,8 +17,12 @@ from gamestate.models import database_proxy, StoredGame, create_tables
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-if app.config['DEBUG']:
-    real_db = SqliteDatabase('database.db')
+# DATABASE_PATH lets a test (or a dev) point the DB at a scratch file and take the
+# dev-style socketio/CORS setup without the /data permission check. Prod sets nothing,
+# so behaviour is unchanged there.
+db_override = os.getenv('DATABASE_PATH')
+if app.config['DEBUG'] or db_override:
+    real_db = SqliteDatabase(db_override or 'database.db')
     socketio = SocketIO(app, cors_allowed_origins=[
         'http://localhost:4200', 'http://localhost:5000',
         'http://127.0.0.1:4200', 'http://127.0.0.1:5000'

@@ -27,7 +27,9 @@ jobs:
           cd flask; pip install -r requirements.txt
       -
         name: Run tests
-        run: python -m unittest
+        # Tests live in flask/test; discovery must run from flask/ (the prior
+        # root-level command silently ran zero tests).
+        run: cd flask && python -m unittest
   frontend-tests:
     name: Front-end tests
     if: ${{ false }}  # Disabled as there are no tests
