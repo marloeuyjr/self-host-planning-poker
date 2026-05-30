@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
-import { ErrorMessage, GameInfo, GameState } from '../model/events';
+import { BacklogState, ErrorMessage, GameInfo, GameState, Issue } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { HashMap, TranslocoService } from '@ngneat/transloco';
@@ -25,6 +25,7 @@ export class CurrentGameService {
   private stateSubject = new BehaviorSubject<GameState>({});
   private infoSubject = new BehaviorSubject<GameInfo | null>(null);
   private newGameSubject = new Subject<void>();
+  private backlogSubject = new BehaviorSubject<BacklogState | null>(null);
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -47,6 +48,7 @@ export class CurrentGameService {
     this.socket.on('state', (state: GameState) => this.stateSubject.next(state));
     this.socket.on('info', (info: GameInfo) => this.infoSubject.next(info));
     this.socket.on('new_game', () => this.newGameSubject.next());
+    this.socket.on('backlog', (backlog: BacklogState) => this.backlogSubject.next(backlog));
 
     this.socket.on('disconnect', (reason) => {
       if (reason !== 'io client disconnect') {
@@ -89,6 +91,24 @@ export class CurrentGameService {
 
   public get newGame$(): Observable<void>{
     return this.newGameSubject.asObservable();
+  }
+
+  public get backlog$(): Observable<BacklogState | null> {
+    return this.backlogSubject.asObservable();
+  }
+
+  /** The issue currently under the pointer, or null when there is no backlog. */
+  public get currentIssue$(): Observable<Issue | null> {
+    return this.backlogSubject.asObservable().pipe(
+      map((backlog: BacklogState | null) =>
+        backlog && backlog.currentIndex !== null ? backlog.issues[backlog.currentIndex] ?? null : null)
+    );
+  }
+
+  public get hasBacklog$(): Observable<boolean> {
+    return this.backlogSubject.asObservable().pipe(
+      map((backlog: BacklogState | null) => !!backlog && backlog.issues.length > 0)
+    );
   }
 
   public get revealed$(): Observable<boolean> {
@@ -134,6 +154,11 @@ export class CurrentGameService {
     this.socket.disconnect();
     this.stateSubject.next({});
     this.infoSubject.next(null);
+    this.backlogSubject.next(null);
+  }
+
+  public selectIssue(index: number): void {
+    this.socket.emit('select_issue', { index: index }, (response?: ErrorMessage) => this.handleError(response));
   }
 
   public renameGame(newName: string): void {

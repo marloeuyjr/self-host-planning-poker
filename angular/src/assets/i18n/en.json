@@ -96,5 +96,21 @@
     "error": "Could not reconnect. Reason: \"{{error}}\".",
     "failed": "Could not reconnect after {{attempts}} attempts.",
     "success": "Successfully reconnected after {{attempts}} attempts."
+  },
+  "currentIssue": {
+    "show-detail": "Details",
+    "hide-detail": "Hide",
+    "none-selected": "Select an issue from the queue to start estimating."
+  },
+  "queueRail": {
+    "title": "Backlog",
+    "progress": "{{done}} / {{total}} estimated",
+    "status": {
+      "pending": "Pending",
+      "estimating": "Voting",
+      "estimated": "Done",
+      "refinement": "Refine",
+      "skipped": "Skipped"
+    }
   }
 }

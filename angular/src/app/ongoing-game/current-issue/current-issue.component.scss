@@ -1,0 +1,57 @@
+// Flat slate band — no card, no shadow. A dashed slate-600 underline echoes the
+// forecast-line motif from the nav logo.
+.current-issue {
+  padding: 0.6rem 1rem;
+  background: var(--brand-surface-1);
+  border-bottom: 1px dashed var(--brand-hairline-strong);
+}
+
+.current-issue__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.current-issue__key {
+  font-family: var(--bs-font-monospace, monospace);
+  font-weight: 600;
+  color: var(--brand-emerald-400);
+  white-space: nowrap;
+}
+
+.current-issue__summary {
+  color: var(--brand-text-primary);
+  font-weight: 500;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.current-issue__toggle {
+  background: transparent;
+  border: 1px solid var(--brand-hairline-strong);
+  color: var(--brand-text-secondary);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: color var(--brand-motion-fast) var(--brand-motion-ease, ease-out),
+              border-color var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
+
+  &:hover {
+    color: var(--brand-emerald-300);
+    border-color: var(--brand-emerald-500);
+  }
+}
+
+.current-issue__description {
+  margin: 0.5rem 0 0;
+  color: var(--brand-text-secondary);
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+.current-issue__hint {
+  color: var(--brand-text-muted);
+  font-size: 0.9rem;
+}

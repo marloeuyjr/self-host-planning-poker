@@ -318,6 +318,68 @@ class GameTestCase(unittest.TestCase):
         self.assertEqual(payload['currentIndex'], 0)
         self.assertEqual(payload['results'], {1: [{'round': 1}]})
 
+    @staticmethod
+    def _backlog():
+        return [
+            {'id': 1, 'key': 'OPS-1', 'summary': 'a', 'status': 'pending', 'orderIndex': 0},
+            {'id': 2, 'key': 'OPS-2', 'summary': 'b', 'status': 'pending', 'orderIndex': 1},
+            {'id': 3, 'key': 'OPS-3', 'summary': 'c', 'status': 'pending', 'orderIndex': 2},
+        ]
+
+    def test_select_issue_moves_pointer_and_flips_status(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        game.set_backlog(issues, current=None)
+        changed = game.select_issue(1)
+        self.assertEqual(game.backlog()['currentIndex'], 1)
+        self.assertEqual(issues[1]['status'], 'estimating')
+        self.assertIn(issues[1], changed)
+        self.assertEqual(game.current_issue()['key'], 'OPS-2')
+
+    def test_select_issue_reverts_unfinished_previous(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'estimating'
+        game.set_backlog(issues, current=0)
+        changed = game.select_issue(1)
+        self.assertEqual(issues[0]['status'], 'pending')   # never completed → reverted
+        self.assertEqual(issues[1]['status'], 'estimating')
+        self.assertIn(issues[0], changed)
+
+    def test_select_issue_preserves_a_completed_estimate(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'estimated'
+        game.set_backlog(issues, current=0)
+        game.select_issue(1)
+        self.assertEqual(issues[0]['status'], 'estimated')  # terminal status preserved
+
+    def test_select_issue_reopens_a_parked_issue(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[2]['status'] = 'refinement'
+        game.set_backlog(issues, current=0)
+        game.select_issue(2)
+        self.assertEqual(issues[2]['status'], 'estimating')  # re-opened (S6)
+
+    def test_select_issue_clears_table(self):
+        game = Game('Sprint')
+        game.set_backlog(self._backlog(), current=0)
+        player = Mock()
+        player.configure_mock(**{'spectator': False})
+        game.player_joins('p', player)
+        game.reveal_hands()
+        game.select_issue(1)
+        self.assertFalse(game.get_revealed())
+        player.clear_hand.assert_called()
+
+    def test_select_issue_out_of_range_raises(self):
+        from gamestate.exceptions import IssueNotInBacklogError
+        game = Game('Sprint')
+        game.set_backlog(self._backlog(), current=0)
+        with self.assertRaises(IssueNotInBacklogError):
+            game.select_issue(9)
+
 
 if __name__ == '__main__':
     unittest.main()

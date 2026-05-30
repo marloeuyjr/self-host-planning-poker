@@ -32,3 +32,11 @@ class InvalidBacklogError(PlanningPokerException):
 
 class NotDriverError(PlanningPokerException):
     code = 4008
+
+
+class IssueNotInBacklogError(PlanningPokerException):
+    code = 4009
+
+
+class NoCurrentIssueError(PlanningPokerException):
+    code = 4010

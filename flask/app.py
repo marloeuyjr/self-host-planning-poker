@@ -90,6 +90,11 @@ def join(data):
     info, state = gm.join_game(game_id, player_id, player_name, spectator)
     emit('state', state, to=game_id, json=True)
 
+    # Hand the room the current backlog so late joiners see the queue + pointer (S4).
+    backlog = gm.backlog(game_id)
+    if backlog['issues']:
+        emit('backlog', backlog, to=game_id, json=True)
+
     info['playerId'] = player_id
     return info
 
@@ -163,6 +168,18 @@ def reveal_cards():
     state, info = gm.reveal_cards(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
+
+
+@socketio.event
+def select_issue(data):
+    game_id = session['game_id']
+    index = data['index']
+
+    backlog, state, info = gm.select_issue(game_id, index)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
 
 
 @socketio.event

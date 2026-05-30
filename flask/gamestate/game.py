@@ -1,8 +1,13 @@
 from typing import Optional
 
 from gamestate.deck import Deck
-from gamestate.exceptions import PlayerNotInGameError, InvalidCardValueError
+from gamestate.exceptions import (PlayerNotInGameError, InvalidCardValueError,
+                                  IssueNotInBacklogError)
 from gamestate.player import Player
+
+# Statuses that are terminal for navigation: selecting another issue must not
+# silently un-mark an estimate that was already accepted.
+_TERMINAL_STATUSES = ('estimated',)
 
 
 class Game:
@@ -103,3 +108,32 @@ class Game:
             'currentIndex': self.__current,
             'results': self.__results,
         }
+
+    def current_issue(self) -> Optional[dict]:
+        """The in-memory dict of the issue under the pointer, or None."""
+        if self.__current is None or not (0 <= self.__current < len(self.__backlog)):
+            return None
+        return self.__backlog[self.__current]
+
+    def select_issue(self, index: int) -> list:
+        """Move the current-issue pointer to `index` and start a fresh vote (S4).
+
+        Reverts the previously-active issue to `pending` if it was never completed,
+        flips the target to `estimating` (which re-opens a parked issue, S6), and
+        clears the table so prior votes don't carry over. Returns the list of issue
+        dicts whose status changed, so the caller persists exactly those."""
+        if not (0 <= index < len(self.__backlog)):
+            raise IssueNotInBacklogError(f'No issue at index {index} in the backlog')
+        changed = []
+        previous = self.current_issue()
+        if previous is not None and previous['status'] == 'estimating':
+            previous['status'] = 'pending'
+            changed.append(previous)
+        self.__current = index
+        issue = self.__backlog[index]
+        if issue['status'] not in _TERMINAL_STATUSES and issue['status'] != 'estimating':
+            issue['status'] = 'estimating'
+            if issue not in changed:
+                changed.append(issue)
+        self.end_turn()
+        return changed

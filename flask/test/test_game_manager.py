@@ -307,6 +307,20 @@ class GameManagerTestCase(unittest.TestCase):
         game_id = gm.create('No backlog', 'POWERS')
         self.assertFalse(gm.get(game_id).has_backlog())
 
+    def test_select_issue_persists_status_and_returns_backlog(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        backlog, state, info = gm.select_issue(game_id, 1)
+        self.assertEqual(backlog['currentIndex'], 1)
+        # The selected issue's status persisted so it survives a restart.
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        statuses = {i.jira_key: i.status for i in sg.issues}
+        self.assertEqual(statuses['OPS-2'], 'estimating')
+        # A fresh GameManager (cache-miss) rehydrates the pointer onto the active issue.
+        gm2 = GameManager()
+        self.assertEqual(gm2.get(game_id).backlog()['currentIndex'], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

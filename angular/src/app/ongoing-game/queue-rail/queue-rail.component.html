@@ -1,0 +1,29 @@
+<ng-container *transloco="let t; read 'queueRail'">
+  <aside class="queue-rail" *ngIf="(backlog$ | async) as backlog" [class.queue-rail--collapsed]="collapsed">
+    <header class="queue-rail__head">
+      <button type="button" class="queue-rail__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed">
+        <span class="queue-rail__title">{{ t('title') }}</span>
+        <span class="queue-rail__count">{{ t('progress', { done: estimatedCount(backlog), total: backlog.issues.length }) }}</span>
+      </button>
+      <div class="queue-rail__bar" role="progressbar"
+           [attr.aria-valuenow]="estimatedCount(backlog)" aria-valuemin="0" [attr.aria-valuemax]="backlog.issues.length">
+        <div class="queue-rail__bar-fill" [style.width.%]="progressPercent(backlog)"></div>
+      </div>
+    </header>
+
+    <ol class="queue-rail__list" *ngIf="!collapsed">
+      <li *ngFor="let issue of backlog.issues; index as i; trackBy: trackById"
+          class="queue-rail__item"
+          [class.is-current]="i === backlog.currentIndex"
+          [attr.data-status]="issue.status"
+          tabindex="0"
+          (click)="select(i)"
+          (keydown.enter)="select(i)">
+        <span class="queue-rail__dot" [attr.data-status]="issue.status" aria-hidden="true"></span>
+        <span class="queue-rail__key">{{ issue.key }}</span>
+        <span class="queue-rail__summary">{{ issue.summary }}</span>
+        <span class="queue-rail__chip" [attr.data-status]="issue.status">{{ t('status.' + issue.status) }}</span>
+      </li>
+    </ol>
+  </aside>
+</ng-container>

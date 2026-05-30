@@ -119,6 +119,14 @@ class GameManager:
         game = self.__get_ongoing_game(game_uuid)
         return game.backlog()
 
+    def select_issue(self, game_uuid: str, index: int) -> tuple[dict, dict, dict]:
+        """Move the pointer and persist the resulting status changes (S4)."""
+        game = self.__get_ongoing_game(game_uuid)
+        changed = game.select_issue(index)
+        for issue in changed:
+            Issue.update(status=issue['status']).where(Issue.id == issue['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
     @staticmethod
     def __hydrate_backlog(game: Game, stored_game: StoredGame) -> None:
         """Rebuild the in-memory issue queue from the database on cache-miss (S1, E5).

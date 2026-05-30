@@ -22,3 +22,31 @@ export interface ErrorMessage {
   message: string;
   code: number;
 }
+
+export type IssueStatus = 'pending' | 'estimating' | 'estimated' | 'refinement' | 'skipped';
+
+export interface Issue {
+  id: number;
+  key: string;
+  summary: string;
+  description: string | null;
+  url: string | null;
+  status: IssueStatus;
+  orderIndex: number;
+}
+
+export interface EstimationResultView {
+  round: number;
+  finalValue: number | null;
+  average: number | null;
+  median: number | null;
+  agreement: number | null;
+  deck: string;
+  voterCount: number;
+}
+
+export interface BacklogState {
+  issues: Issue[];
+  currentIndex: number | null;
+  results: Record<number, EstimationResultView[]>;
+}
