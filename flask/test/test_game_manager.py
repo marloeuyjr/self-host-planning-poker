@@ -6,7 +6,7 @@ from peewee import SqliteDatabase
 
 from gamestate.deck import Deck
 from gamestate.exceptions import GameDoesNotExistError, DeckDoesNotExistError, \
-    GameNotOngoingError, NoCurrentIssueError
+    GameNotOngoingError, NoCurrentIssueError, NotDriverError
 from gamestate.game_manager import GameManager
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy, create_tables
 from gamestate.player import Player
@@ -491,6 +491,27 @@ class GameManagerTestCase(unittest.TestCase):
         p.set_hand(5)
         gm2.reveal_cards(game_id)
         self.assertFalse(game.is_resumed())       # re-vote completed the resume
+
+    # --- S8: soft host / driver gate ---
+
+    def test_require_driver_allows_driver_rejects_others(self):
+        gm = GameManager()
+        game_id = gm.create('Sprint', 'FIBONACCI')
+        _, _, driver_id, _ = gm.join_game(game_id, 'p1', 'Ann', False)   # first joiner = driver
+        _, _, other_id, _ = gm.join_game(game_id, 'p2', 'Bob', False)
+        gm.require_driver(game_id, driver_id)                            # no raise
+        with self.assertRaises(NotDriverError):
+            gm.require_driver(game_id, other_id)
+
+    def test_claim_driver_takes_over(self):
+        gm = GameManager()
+        game_id = gm.create('Sprint', 'FIBONACCI')
+        _, _, driver_id, _ = gm.join_game(game_id, 'p1', 'Ann', False)
+        _, _, other_id, _ = gm.join_game(game_id, 'p2', 'Bob', False)
+        gm.claim_driver(game_id, other_id)
+        gm.require_driver(game_id, other_id)                             # now Bob drives
+        with self.assertRaises(NotDriverError):
+            gm.require_driver(game_id, driver_id)
 
 
 if __name__ == '__main__':

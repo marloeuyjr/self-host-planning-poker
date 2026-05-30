@@ -32,6 +32,7 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
   currentIssue: Issue | null = null;
   priorRounds: EstimationResultView[] = [];
   finalValueInput: number | null = null;
+  isDriver = true;   // only the driver accepts / re-votes (S8)
 
   @ViewChild('agreementElement')
   private agreementElement?: ElementRef;
@@ -56,6 +57,8 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
           this.currentIssue = issue;
           this.priorRounds = (issue && backlog) ? (backlog.results[issue.id] ?? []) : [];
         }));
+
+    this.subscriptions.push(this.currentGameService.isDriver$.subscribe((d) => this.isDriver = d));
   }
 
   ngAfterViewInit(): void {

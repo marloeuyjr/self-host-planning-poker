@@ -94,6 +94,14 @@
     outline: 2px solid var(--brand-emerald-500);
     outline-offset: -2px;
   }
+
+  // Non-drivers can read the queue but not jump it (S8).
+  &.is-locked {
+    cursor: default;
+  }
+  &.is-locked:hover {
+    background: transparent;
+  }
 }
 
 .queue-rail__dot {

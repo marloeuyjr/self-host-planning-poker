@@ -69,7 +69,8 @@
     "revote": "Re-vote",
     "decide-hint": "Two rounds without consensus — set the value or park this issue.",
     "prior-label": "Prior:",
-    "prior-round": "R{{round}}: {{value}}"
+    "prior-round": "R{{round}}: {{value}}",
+    "driver-only": "The session driver records the estimate for this issue."
   },
   "buttons": {
     "edit": "Edit game info",
@@ -80,7 +81,8 @@
     "reveal": "Reveal cards",
     "newTurn": "New turn",
     "link": "Copy link to join game",
-    "qrcode": "Display QR code to join game"
+    "qrcode": "Display QR code to join game",
+    "claimDriver": "Take control"
   },
   "playerState": {
     "spectator": "Spectator",

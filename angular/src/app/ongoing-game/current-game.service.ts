@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
-import { BehaviorSubject, filter, map, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, combineLatest, filter, map, Observable, Subject } from 'rxjs';
 import { BacklogState, ErrorMessage, GameInfo, GameState, Issue, RoundResults } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
@@ -120,6 +120,13 @@ export class CurrentGameService {
     return this.resultsSubject.asObservable();
   }
 
+  /** Whether the local player holds the soft driver role (S8). */
+  public get isDriver$(): Observable<boolean> {
+    return combineLatest([this.infoSubject.asObservable(), this.userInformation.playerIdObservable()]).pipe(
+      map(([info, playerId]) => !!info && !!info.driverId && info.driverId === playerId)
+    );
+  }
+
   public get revealed$(): Observable<boolean> {
     return this.gameInfo$.pipe(
       map((info: GameInfo | null) => info !== null ? info.revealed : false)
@@ -185,6 +192,10 @@ export class CurrentGameService {
 
   public parkIssue(status: 'refinement' | 'skipped', reason: string | null): void {
     this.socket.emit('park_issue', { status: status, reason: reason }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  public claimDriver(): void {
+    this.socket.emit('claim_driver', (response?: ErrorMessage) => this.handleError(response));
   }
 
   public renameGame(newName: string): void {

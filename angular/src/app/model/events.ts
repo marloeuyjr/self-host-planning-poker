@@ -4,6 +4,7 @@ export interface GameInfo {
   revealed: boolean;
   playerId?: string;
   resumed?: boolean;
+  driverId?: string | null;
 }
 
 export interface Player {

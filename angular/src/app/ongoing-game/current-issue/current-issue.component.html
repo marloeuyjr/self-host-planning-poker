@@ -11,7 +11,8 @@
                 [attr.aria-expanded]="descriptionExpanded">
           {{ descriptionExpanded ? t('hide-detail') : t('show-detail') }}
         </button>
-        <button type="button"
+        <button *ngIf="(isDriver$ | async)"
+                type="button"
                 class="current-issue__toggle"
                 (click)="togglePark()"
                 [attr.aria-expanded]="parkExpanded">

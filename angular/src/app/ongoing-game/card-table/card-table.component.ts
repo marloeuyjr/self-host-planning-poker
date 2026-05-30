@@ -21,11 +21,13 @@ export class CardTableComponent implements OnDestroy {
   // In a backlog game, advancing happens via accept / re-vote in the results panel,
   // so the classic "New turn" button is hidden (S5).
   isBacklogGame = false;
+  isDriver = true;   // soft host gate — only the driver reveals / advances (S8)
 
   private stateSubscription: Subscription;
   private revealedSubscription: Subscription;
   private deckSubscription: Subscription;
   private backlogSubscription: Subscription;
+  private driverSubscription: Subscription;
 
   constructor(private currentGameService: CurrentGameService) {
     this.stateSubscription = this.currentGameService.state$
@@ -41,6 +43,9 @@ export class CardTableComponent implements OnDestroy {
 
     this.backlogSubscription = currentGameService.hasBacklog$
     .subscribe((hasBacklog: boolean) => this.isBacklogGame = hasBacklog);
+
+    this.driverSubscription = currentGameService.isDriver$
+    .subscribe((isDriver: boolean) => this.isDriver = isDriver);
   }
 
   revealCards(): void {
@@ -51,11 +56,16 @@ export class CardTableComponent implements OnDestroy {
     this.currentGameService.endTurn();
   }
 
+  claimDriver(): void {
+    this.currentGameService.claimDriver();
+  }
+
   ngOnDestroy(): void {
     this.stateSubscription.unsubscribe();
     this.revealedSubscription.unsubscribe();
     this.deckSubscription.unsubscribe();
     this.backlogSubscription.unsubscribe();
+    this.driverSubscription.unsubscribe();
   }
 
   getId(item: any): string {

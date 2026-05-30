@@ -22,6 +22,7 @@ class Game:
         self.__results = {}
         self.__tokens = {}      # rejoin-token -> player id, for reconnect reattach (S7)
         self.__resumed = False  # True after a restart re-opens a mid-flight issue (E5)
+        self.__driver = None    # soft host gate on destructive actions (S8, EC4)
 
     def player_joins(self, uuid: str, player: Player, token=None) -> str:
         """Add a player and return the id actually used (S7).
@@ -36,10 +37,15 @@ class Game:
                 effective = existing   # same human rejoining → reuse the slot
             self.__tokens[token] = effective
         self.__state[effective] = player
+        if self.__driver is None:
+            self.__driver = effective   # first joiner auto-claims the driver role (EC4)
         return effective
 
     def player_leaves(self, uuid: str):
         self.__state.pop(uuid)
+        if uuid == self.__driver:
+            # auto-handoff to whoever remains (None when the room empties)
+            self.__driver = next(iter(self.__state), None)
 
     def set_deck(self, deck: Deck):
         existing_deck = self.__deck
@@ -104,11 +110,25 @@ class Game:
         re-revealed or advanced yet — the client shows a 'session resumed' toast (E5)."""
         return self.__resumed
 
+    def driver_id(self):
+        return self.__driver
+
+    def is_driver(self, player_id: str) -> bool:
+        """Soft host gate (S8): is this player the session driver? Voting is never
+        gated; only destructive / record-mutating actions are. NOT authentication."""
+        return self.__driver == player_id
+
+    def claim_driver(self, player_id: str) -> None:
+        """Take over the driver role — a soft, claimable handoff (EC4)."""
+        if player_id in self.__state:
+            self.__driver = player_id
+
     def info(self) -> dict:
         return {
             'name': self.name,
             'deck': self.__deck.name,
-            'revealed': self.__revealed
+            'revealed': self.__revealed,
+            'driverId': self.__driver
         }
 
     def set_backlog(self, issues: list, current=None, results=None) -> None:

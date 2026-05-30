@@ -22,6 +22,7 @@ import { TranslocoDirective } from '@ngneat/transloco';
 export class CurrentIssueComponent {
   currentIssue$: Observable<Issue | null>;
   hasBacklog$: Observable<boolean>;
+  isDriver$: Observable<boolean>;
   descriptionExpanded = false;
   parkExpanded = false;
   parkReason = '';
@@ -29,6 +30,7 @@ export class CurrentIssueComponent {
   constructor(private currentGame: CurrentGameService) {
     this.currentIssue$ = this.currentGame.currentIssue$;
     this.hasBacklog$ = this.currentGame.hasBacklog$;
+    this.isDriver$ = this.currentGame.isDriver$;
   }
 
   toggleDescription(): void {

@@ -297,15 +297,36 @@ class GameTestCase(unittest.TestCase):
     def test_game_info(self):
         game_name1 = 'Fizz'
         game1 = Game(game_name1)
-        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False})
+        self.assertEqual(game1.info(), {'name': game_name1, 'deck': 'FIBONACCI', 'revealed': False, 'driverId': None})
 
         game_name2 = 'Buzz'
         game2 = Game(game_name2, Deck.POWERS)
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'driverId': None})
         game2.reveal_hands()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': True, 'driverId': None})
         game2.end_turn()
-        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False})
+        self.assertEqual(game2.info(), {'name': game_name2, 'deck': 'POWERS', 'revealed': False, 'driverId': None})
+
+    def test_first_joiner_becomes_driver_and_hands_off_on_leave(self):
+        game = Game('Sprint')
+        game.player_joins('a', Mock())
+        self.assertTrue(game.is_driver('a'))
+        game.player_joins('b', Mock())
+        self.assertTrue(game.is_driver('a'))      # still the first joiner
+        self.assertFalse(game.is_driver('b'))
+        game.player_leaves('a')                   # driver leaves
+        self.assertTrue(game.is_driver('b'))      # auto-handoff to whoever remains
+        self.assertEqual(game.info()['driverId'], 'b')
+
+    def test_claim_driver_takes_over(self):
+        game = Game('Sprint')
+        game.player_joins('a', Mock())
+        game.player_joins('b', Mock())
+        game.claim_driver('b')
+        self.assertTrue(game.is_driver('b'))
+        self.assertFalse(game.is_driver('a'))
+        game.claim_driver('ghost')                # not a present player → ignored
+        self.assertTrue(game.is_driver('b'))
 
     def test_set_and_expose_backlog(self):
         game = Game('Sprint')

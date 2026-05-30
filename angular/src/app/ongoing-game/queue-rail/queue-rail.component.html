@@ -15,8 +15,9 @@
       <li *ngFor="let issue of backlog.issues; index as i; trackBy: trackById"
           class="queue-rail__item"
           [class.is-current]="i === backlog.currentIndex"
+          [class.is-locked]="!isDriver"
           [attr.data-status]="issue.status"
-          tabindex="0"
+          [attr.tabindex]="isDriver ? 0 : -1"
           (click)="select(i)"
           (keydown.enter)="select(i)">
         <span class="queue-rail__dot" [attr.data-status]="issue.status" aria-hidden="true"></span>

@@ -110,6 +110,10 @@ def disconnect():
     state = gm.leave_game(game_id, player_id)
     leave_room(game_id)
     emit('state', state, to=game_id, json=True)
+    # Re-broadcast info so a driver auto-handoff (S8) reaches the remaining clients.
+    info = gm.info(game_id)
+    if info:
+        emit('info', info, to=game_id, json=True)
 
     session['player_id'] = None
     session['game_id'] = None
@@ -129,7 +133,17 @@ def set_deck(data):
     game_id = session['game_id']
     deck_name = data['deck']
 
+    gm.require_driver(game_id, session['player_id'])
     info, state = gm.set_deck(game_id, deck_name)
+    emit('info', info, to=game_id, json=True)
+    emit('state', state, to=game_id, json=True)
+
+
+@socketio.event
+def claim_driver():
+    game_id = session['game_id']
+
+    info, state = gm.claim_driver(game_id, session['player_id'])
     emit('info', info, to=game_id, json=True)
     emit('state', state, to=game_id, json=True)
 
@@ -168,6 +182,7 @@ def pick_card(data):
 def reveal_cards():
     game_id = session['game_id']
 
+    gm.require_driver(game_id, session['player_id'])
     state, info, results = gm.reveal_cards(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
@@ -179,6 +194,7 @@ def accept_estimate(data):
     game_id = session['game_id']
     value = data.get('value') if data else None
 
+    gm.require_driver(game_id, session['player_id'])
     backlog, state, info = gm.accept_estimate(game_id, value)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
@@ -190,6 +206,7 @@ def accept_estimate(data):
 def revote():
     game_id = session['game_id']
 
+    gm.require_driver(game_id, session['player_id'])
     backlog, state, info = gm.revote(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
@@ -202,6 +219,7 @@ def select_issue(data):
     game_id = session['game_id']
     index = data['index']
 
+    gm.require_driver(game_id, session['player_id'])
     backlog, state, info = gm.select_issue(game_id, index)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
@@ -215,6 +233,7 @@ def park_issue(data):
     status = (data.get('status') if data else None) or 'refinement'
     reason = data.get('reason') if data else None
 
+    gm.require_driver(game_id, session['player_id'])
     backlog, state, info = gm.park_issue(game_id, status, reason)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)
@@ -226,6 +245,7 @@ def park_issue(data):
 def end_turn():
     game_id = session['game_id']
 
+    gm.require_driver(game_id, session['player_id'])
     state, info = gm.end_turn(game_id)
     emit('state', state, to=game_id, json=True)
     emit('info', info, to=game_id, json=True)

@@ -5,7 +5,7 @@ from peewee import DoesNotExist
 
 from gamestate.deck import Deck
 from gamestate.exceptions import (GameDoesNotExistError, DeckDoesNotExistError,
-                                  GameNotOngoingError, NoCurrentIssueError)
+                                  GameNotOngoingError, NoCurrentIssueError, NotDriverError)
 from gamestate.game import Game
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
@@ -179,6 +179,26 @@ class GameManager:
     def backlog(self, game_uuid: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)
         return game.backlog()
+
+    def info(self, game_uuid: str):
+        """Current info, or None if the game is no longer in memory (room emptied)."""
+        game = self.games.get(game_uuid)
+        return game.info() if game else None
+
+    def require_driver(self, game_uuid: str, player_id: str) -> None:
+        """Soft host gate (S8, EC4): raise unless `player_id` drives this session.
+
+        Server-enforced — the destructive handlers call this before mutating the
+        durable record. A fat-finger guardrail, explicitly NOT authentication."""
+        game = self.__get_ongoing_game(game_uuid)
+        if not game.is_driver(player_id):
+            raise NotDriverError('Only the session driver can do that')
+
+    def claim_driver(self, game_uuid: str, player_id: str) -> tuple[dict, dict]:
+        """Take over the (soft, claimable) driver role."""
+        game = self.__get_ongoing_game(game_uuid)
+        game.claim_driver(player_id)
+        return game.info(), game.state()
 
     def select_issue(self, game_uuid: str, index: int) -> tuple[dict, dict, dict]:
         """Move the pointer and persist the resulting status changes (S4)."""

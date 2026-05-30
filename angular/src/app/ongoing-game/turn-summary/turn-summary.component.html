@@ -57,8 +57,8 @@
     </div>
   </div>
 
-  <!-- Backlog games: driver accept / re-vote controls (E4) -->
-  <div class="turn-summary__controls" *ngIf="isBacklogGame() && results">
+  <!-- Backlog games: driver accept / re-vote controls (E4); gated to the driver (S8) -->
+  <div class="turn-summary__controls" *ngIf="isBacklogGame() && results && isDriver">
     <div class="turn-summary__final">
       <span class="metric-label">{{ t('final-label') }}</span>
       <div class="turn-summary__final-cards">
@@ -73,6 +73,7 @@
       <button class="btn btn-primary" type="button" (click)="accept()" [disabled]="finalValueInput === null">{{ t('accept') }}</button>
     </div>
   </div>
+  <p class="turn-summary__hint" *ngIf="isBacklogGame() && results && !isDriver">{{ t('driver-only') }}</p>
   <p class="turn-summary__hint" *ngIf="showDecideHint()">{{ t('decide-hint') }}</p>
 
   <!-- Prior rounds — muted reference only (anti-anchoring, EC2) -->
