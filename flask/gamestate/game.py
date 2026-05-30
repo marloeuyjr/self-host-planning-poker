@@ -20,9 +20,23 @@ class Game:
         self.__backlog = []
         self.__current = None
         self.__results = {}
+        self.__tokens = {}      # rejoin-token -> player id, for reconnect reattach (S7)
+        self.__resumed = False  # True after a restart re-opens a mid-flight issue (E5)
 
-    def player_joins(self, uuid: str, player: Player):
-        self.__state[uuid] = player
+    def player_joins(self, uuid: str, player: Player, token=None) -> str:
+        """Add a player and return the id actually used (S7).
+
+        A `token` (localStorage-backed, sent on re-join) reattaches the same human
+        to their existing slot instead of minting a ghost duplicate. Returns the
+        effective player id so the caller can hand it back to the client."""
+        effective = uuid
+        if token is not None:
+            existing = self.__tokens.get(token)
+            if existing is not None and existing in self.__state:
+                effective = existing   # same human rejoining → reuse the slot
+            self.__tokens[token] = effective
+        self.__state[effective] = player
+        return effective
 
     def player_leaves(self, uuid: str):
         self.__state.pop(uuid)
@@ -58,6 +72,7 @@ class Game:
 
     def end_turn(self) -> None:
         self.__revealed = False
+        self.__resumed = False
         for player in self.__state.values():
             player.clear_hand()
 
@@ -82,6 +97,12 @@ class Game:
     def reveal_hands(self) -> None:
         """Return the players' with their hands"""
         self.__revealed = True
+        self.__resumed = False   # re-voting after a resume clears the prompt (S7)
+
+    def is_resumed(self) -> bool:
+        """True when a worker restart re-opened a mid-flight issue and it hasn't been
+        re-revealed or advanced yet — the client shows a 'session resumed' toast (E5)."""
+        return self.__resumed
 
     def info(self) -> dict:
         return {
@@ -97,6 +118,10 @@ class Game:
         self.__backlog = list(issues)
         self.__current = current
         self.__results = results or {}
+        # A hydrated, mid-estimation issue means we came back from a restart with
+        # in-flight (pre-reveal) votes lost — flag it so the client prompts a re-vote.
+        active = self.current_issue()
+        self.__resumed = active is not None and active['status'] == 'estimating'
 
     def has_backlog(self) -> bool:
         return len(self.__backlog) > 0

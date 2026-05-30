@@ -113,14 +113,15 @@ class GameManagerTestCase(unittest.TestCase):
 
     def test_join_game(self):
         gm = GameManager()
-        game_mock = Mock(**{'state.return_value': "{'foo': 'bar'}", 'info.return_value': "{'fizz': 'buzz'}"})
+        game_mock = Mock(**{'state.return_value': "{'foo': 'bar'}", 'info.return_value': "{'fizz': 'buzz'}",
+                            'player_joins.return_value': 'p1', 'is_resumed.return_value': False})
         gm.games = {'uuid1': game_mock}
 
         player_name = 'Peter'
         player_id = 'p1'
         is_spectator = True
 
-        info, state = gm.join_game('uuid1', player_id, player_name, is_spectator)
+        info, state, effective_id, resumed = gm.join_game('uuid1', player_id, player_name, is_spectator)
         game_mock.player_joins.assert_called()
         args = game_mock.player_joins.call_args.args
         self.assertEqual(args[0], player_id)
@@ -131,6 +132,8 @@ class GameManagerTestCase(unittest.TestCase):
         game_mock.info.assert_called()
         self.assertEqual(state, "{'foo': 'bar'}")
         self.assertEqual(info, "{'fizz': 'buzz'}")
+        self.assertEqual(effective_id, 'p1')
+        self.assertFalse(resumed)
 
         with self.assertRaises(GameDoesNotExistError) as ex:
             gm.join_game('uuid2', 'p2', player_name, is_spectator)
@@ -448,6 +451,46 @@ class GameManagerTestCase(unittest.TestCase):
         game_id = gm.create('No backlog', 'FIBONACCI')
         with self.assertRaises(NoCurrentIssueError):
             gm.park_issue(game_id, 'refinement', None)
+
+    # --- S7: rejoin token + scoped resume ---
+
+    def test_join_token_reattaches_same_identity(self):
+        gm = GameManager()
+        game_id = gm.create('Sprint', 'FIBONACCI')
+        _, _, id1, _ = gm.join_game(game_id, 'p1', 'Ann', False, token='tok')
+        _, _, id2, _ = gm.join_game(game_id, 'p2', 'Ann', False, token='tok')
+        self.assertEqual(id1, id2)                                   # same token → same id
+        self.assertEqual(len(gm.get(game_id).list_players_uuid()), 1)  # no ghost
+
+    def test_join_after_restart_flags_resume_for_inflight_issue(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)               # OPS-1 → estimating, persisted
+        gm2 = GameManager()                       # fresh process → cache-miss hydrate
+        _, _, _, resumed = gm2.join_game(game_id, 'p1', 'Ann', False)
+        self.assertTrue(resumed)                  # in-flight issue → resume toast
+
+    def test_join_fresh_backlog_is_not_a_resume(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        _, _, _, resumed = gm.join_game(game_id, 'p1', 'Ann', False)
+        self.assertFalse(resumed)                 # nothing selected yet
+
+    def test_resume_flag_clears_once_re_revealed(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)
+        gm2 = GameManager()
+        game = gm2.get(game_id)
+        self.assertTrue(game.is_resumed())
+        p = Player('Ann', False)
+        game.player_joins('p1', p)
+        p.set_hand(5)
+        gm2.reveal_cards(game_id)
+        self.assertFalse(game.is_resumed())       # re-vote completed the resume
 
 
 if __name__ == '__main__':

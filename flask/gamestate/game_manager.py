@@ -70,11 +70,14 @@ class GameManager:
         StoredGame.update(deck=deck_name).where(StoredGame.uuid == uuid.UUID(game_uuid)).execute()
         return game.info(), game.state()
 
-    def join_game(self, game_uuid: str, player_id: str, player_name: str, is_spectator: bool) -> tuple[dict, dict]:
+    def join_game(self, game_uuid: str, player_id: str, player_name: str,
+                  is_spectator: bool, token=None) -> tuple[dict, dict, str, bool]:
+        """Join (or reattach via `token`, S7). Returns info, state, the effective
+        player id, and whether this is a post-restart resume (E5)."""
         game = self.get(game_uuid)
         player = Player(player_name, is_spectator)
-        game.player_joins(player_id, player)
-        return game.info(), game.state()
+        effective_id = game.player_joins(player_id, player, token=token)
+        return game.info(), game.state(), effective_id, game.is_resumed()
 
     def leave_game(self, game_uuid: str, player_uuid: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)

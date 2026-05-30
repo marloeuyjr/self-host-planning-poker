@@ -140,7 +140,8 @@ export class CurrentGameService {
     .emitWithAck('join', {
       game: gameId,
       name: this.userInformation.getName(),
-      spectator: this.userInformation.isSpectator()
+      spectator: this.userInformation.isSpectator(),
+      token: this.getOrCreateRejoinToken(gameId)
     })
     .then((response: GameInfo | ErrorMessage) => {
         if ('error' in response) {
@@ -150,6 +151,9 @@ export class CurrentGameService {
         } else {
           this.infoSubject.next(response);
           this.userInformation.setPlayerIdSubject(response.playerId);
+          if (response.resumed) {
+            this.info('resume.notice');   // "session resumed — re-vote the current issue"
+          }
           return true;
         }
       },
@@ -201,6 +205,28 @@ export class CurrentGameService {
 
   public endTurn(): void {
     this.socket.emit('end_turn', (response?: ErrorMessage) => this.handleError(response));
+  }
+
+  /**
+   * A stable per-session rejoin token kept in localStorage (S7, EC3). Sent on join
+   * so a reconnect / reload reattaches to the same player identity instead of
+   * minting a fresh one. This is continuity, NOT authentication.
+   */
+  private getOrCreateRejoinToken(gameId: string): string {
+    const key = `shpp-rejoin-${gameId}`;
+    try {
+      let token = localStorage.getItem(key);
+      if (!token) {
+        token = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `${gameId}-${Date.now()}`;
+        localStorage.setItem(key, token);
+      }
+      return token;
+    } catch {
+      // localStorage unavailable (private mode / blocked) — fall back to a volatile id.
+      return `${gameId}-${Date.now()}`;
+    }
   }
 
   private handleError(error?: ErrorMessage | any): void {

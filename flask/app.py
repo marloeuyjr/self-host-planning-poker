@@ -79,15 +79,16 @@ def serve_assets(path):
 @socketio.event
 def join(data):
     player_id = str(uuid.uuid4())
-    session['player_id'] = player_id
     player_name = data['name']
     spectator = data['spectator']
     game_id = data['game']
+    token = data.get('token')   # localStorage rejoin token (S7) — reattach, not auth
 
     session['game_id'] = game_id
     join_room(game_id)
 
-    info, state = gm.join_game(game_id, player_id, player_name, spectator)
+    info, state, player_id, resumed = gm.join_game(game_id, player_id, player_name, spectator, token)
+    session['player_id'] = player_id
     emit('state', state, to=game_id, json=True)
 
     # Hand the room the current backlog so late joiners see the queue + pointer (S4).
@@ -96,6 +97,8 @@ def join(data):
         emit('backlog', backlog, to=game_id, json=True)
 
     info['playerId'] = player_id
+    if resumed:
+        info['resumed'] = True
     return info
 
 

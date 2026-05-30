@@ -380,6 +380,25 @@ class GameTestCase(unittest.TestCase):
         with self.assertRaises(IssueNotInBacklogError):
             game.select_issue(9)
 
+    def test_rejoin_token_reattaches_same_slot(self):
+        game = Game('Sprint')
+        p1 = Mock()
+        p1.configure_mock(**{'spectator': False})
+        eff1 = game.player_joins('id-1', p1, token='tok')
+        self.assertEqual(eff1, 'id-1')
+        # Same human rejoins (same token) while still present → reuse id, no duplicate.
+        p1b = Mock()
+        p1b.configure_mock(**{'spectator': False})
+        eff2 = game.player_joins('id-2', p1b, token='tok')
+        self.assertEqual(eff2, 'id-1')
+        self.assertEqual(game.list_players_uuid(), ['id-1'])
+
+    def test_join_without_token_keeps_distinct_players(self):
+        game = Game('Sprint')
+        game.player_joins('id-1', Mock())
+        game.player_joins('id-2', Mock())
+        self.assertEqual(len(game.list_players_uuid()), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

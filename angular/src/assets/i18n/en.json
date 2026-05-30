@@ -128,5 +128,8 @@
       "refinement": "Refine",
       "skipped": "Skipped"
     }
+  },
+  "resume": {
+    "notice": "Session resumed — please re-vote the current issue (in-flight votes are not restored)."
   }
 }

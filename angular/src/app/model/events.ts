@@ -3,6 +3,7 @@ export interface GameInfo {
   deck: string;
   revealed: boolean;
   playerId?: string;
+  resumed?: boolean;
 }
 
 export interface Player {
