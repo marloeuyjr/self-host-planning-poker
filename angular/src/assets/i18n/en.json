@@ -112,7 +112,11 @@
   "currentIssue": {
     "show-detail": "Details",
     "hide-detail": "Hide",
-    "none-selected": "Select an issue from the queue to start estimating."
+    "none-selected": "Select an issue from the queue to start estimating.",
+    "park": "Park",
+    "park-reason-placeholder": "Reason (optional) — e.g. missing AC",
+    "park-refine": "Needs refinement",
+    "park-skip": "Skip"
   },
   "queueRail": {
     "title": "Backlog",

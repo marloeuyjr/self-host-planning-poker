@@ -179,6 +179,10 @@ export class CurrentGameService {
     this.socket.emit('revote', (response?: ErrorMessage) => this.handleError(response));
   }
 
+  public parkIssue(status: 'refinement' | 'skipped', reason: string | null): void {
+    this.socket.emit('park_issue', { status: status, reason: reason }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
   public renameGame(newName: string): void {
     this.socket.emit('rename_game', { name: newName }, (response?: ErrorMessage) => this.handleError(response));
   }

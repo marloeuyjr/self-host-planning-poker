@@ -414,6 +414,41 @@ class GameManagerTestCase(unittest.TestCase):
         with self.assertRaises(NoCurrentIssueError):
             gm.accept_estimate(game_id)
 
+    # --- S6: park / needs-refinement ---
+
+    def test_park_flags_issue_with_reason_and_advances(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'vague'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)
+        parked_id = gm.get(game_id).current_issue()['id']
+        backlog, state, info = gm.park_issue(game_id, 'refinement', 'needs AC')
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        parked = Issue.get(Issue.id == parked_id)
+        self.assertEqual(parked.status, 'refinement')
+        self.assertEqual(parked.park_reason, 'needs AC')
+        # advanced to the next pending issue
+        self.assertEqual(backlog['currentIndex'], 1)
+        statuses = {i.jira_key: i.status for i in sg.issues}
+        self.assertEqual(statuses['OPS-2'], 'estimating')
+
+    def test_parked_issue_excluded_then_reselectable(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)
+        gm.park_issue(game_id, 'skipped', None)
+        # re-select the parked issue later — it re-opens for voting (S4 rule)
+        backlog, _, _ = gm.select_issue(game_id, 0)
+        self.assertEqual(backlog['currentIndex'], 0)
+        self.assertEqual(backlog['issues'][0]['status'], 'estimating')
+
+    def test_park_without_current_issue_raises(self):
+        gm = GameManager()
+        game_id = gm.create('No backlog', 'FIBONACCI')
+        with self.assertRaises(NoCurrentIssueError):
+            gm.park_issue(game_id, 'refinement', None)
+
 
 if __name__ == '__main__':
     unittest.main()

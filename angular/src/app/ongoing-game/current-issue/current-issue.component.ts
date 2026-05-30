@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AsyncPipe, NgIf } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { CurrentGameService } from '../current-game.service';
 import { Issue } from '../../model/events';
@@ -16,12 +17,14 @@ import { TranslocoDirective } from '@ngneat/transloco';
   standalone: true,
   templateUrl: './current-issue.component.html',
   styleUrls: ['./current-issue.component.scss'],
-  imports: [NgIf, AsyncPipe, TranslocoDirective]
+  imports: [NgIf, AsyncPipe, FormsModule, TranslocoDirective]
 })
 export class CurrentIssueComponent {
   currentIssue$: Observable<Issue | null>;
   hasBacklog$: Observable<boolean>;
   descriptionExpanded = false;
+  parkExpanded = false;
+  parkReason = '';
 
   constructor(private currentGame: CurrentGameService) {
     this.currentIssue$ = this.currentGame.currentIssue$;
@@ -30,5 +33,15 @@ export class CurrentIssueComponent {
 
   toggleDescription(): void {
     this.descriptionExpanded = !this.descriptionExpanded;
+  }
+
+  togglePark(): void {
+    this.parkExpanded = !this.parkExpanded;
+  }
+
+  park(status: 'refinement' | 'skipped'): void {
+    this.currentGame.parkIssue(status, this.parkReason.trim() || null);
+    this.parkReason = '';
+    this.parkExpanded = false;
   }
 }

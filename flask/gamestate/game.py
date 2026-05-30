@@ -172,6 +172,14 @@ class Game:
             issue['status'] = status
         return issue
 
+    def park_current(self, status: str, reason=None) -> Optional[dict]:
+        """Flag the current issue as needs-refinement / skipped, with a reason (S6)."""
+        issue = self.current_issue()
+        if issue is not None:
+            issue['status'] = status
+            issue['parkReason'] = reason
+        return issue
+
     def advance_to_next_pending(self) -> list:
         """Move the pointer to the next still-`pending` issue (wrapping once so no
         pending issue is stranded) and re-open it; clear the table. Returns the list

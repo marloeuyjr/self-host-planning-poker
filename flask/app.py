@@ -207,6 +207,19 @@ def select_issue(data):
 
 
 @socketio.event
+def park_issue(data):
+    game_id = session['game_id']
+    status = (data.get('status') if data else None) or 'refinement'
+    reason = data.get('reason') if data else None
+
+    backlog, state, info = gm.park_issue(game_id, status, reason)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
 def end_turn():
     game_id = session['game_id']
 

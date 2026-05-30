@@ -185,6 +185,20 @@ class GameManager:
             Issue.update(status=issue['status']).where(Issue.id == issue['id']).execute()
         return game.backlog(), game.state(), game.info()
 
+    def park_issue(self, game_uuid: str, status='refinement', reason=None) -> tuple[dict, dict, dict]:
+        """Flag the current issue needs-refinement / skipped and advance (S6)."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.current_issue()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        if status not in ('refinement', 'skipped'):
+            status = 'refinement'
+        game.park_current(status, reason)
+        Issue.update(status=status, park_reason=reason).where(Issue.id == issue['id']).execute()
+        for changed in game.advance_to_next_pending():
+            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
     @staticmethod
     def __hydrate_backlog(game: Game, stored_game: StoredGame) -> None:
         """Rebuild the in-memory issue queue from the database on cache-miss (S1, E5).
@@ -202,6 +216,7 @@ class GameManager:
                 'description': issue.description,
                 'url': issue.url,
                 'status': issue.status,
+                'parkReason': issue.park_reason,
                 'orderIndex': issue.order_index,
             })
             if issue.status == 'estimating' and current is None:

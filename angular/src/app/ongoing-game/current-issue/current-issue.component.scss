@@ -55,3 +55,14 @@
   color: var(--brand-text-muted);
   font-size: 0.9rem;
 }
+
+.current-issue__park {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.current-issue__park-reason {
+  max-width: 22rem;
+}

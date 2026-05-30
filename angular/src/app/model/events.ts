@@ -32,6 +32,7 @@ export interface Issue {
   description: string | null;
   url: string | null;
   status: IssueStatus;
+  parkReason?: string | null;
   orderIndex: number;
 }
 

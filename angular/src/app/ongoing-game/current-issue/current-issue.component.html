@@ -11,8 +11,20 @@
                 [attr.aria-expanded]="descriptionExpanded">
           {{ descriptionExpanded ? t('hide-detail') : t('show-detail') }}
         </button>
+        <button type="button"
+                class="current-issue__toggle"
+                (click)="togglePark()"
+                [attr.aria-expanded]="parkExpanded">
+          {{ t('park') }}
+        </button>
       </div>
       <p *ngIf="descriptionExpanded && issue.description" class="current-issue__description">{{ issue.description }}</p>
+      <div *ngIf="parkExpanded" class="current-issue__park">
+        <input type="text" class="form-control form-control-sm current-issue__park-reason"
+               [(ngModel)]="parkReason" [placeholder]="t('park-reason-placeholder')">
+        <button type="button" class="current-issue__toggle" (click)="park('refinement')">{{ t('park-refine') }}</button>
+        <button type="button" class="current-issue__toggle" (click)="park('skipped')">{{ t('park-skip') }}</button>
+      </div>
     </ng-container>
     <ng-template #noIssue>
       <span class="current-issue__hint">{{ t('none-selected') }}</span>
