@@ -208,6 +208,19 @@ class GameManager:
             Issue.update(status=issue['status']).where(Issue.id == issue['id']).execute()
         return game.backlog(), game.state(), game.info()
 
+    def reopen_issue(self, game_uuid: str) -> tuple[dict, dict, dict]:
+        """Re-open the current estimated/parked issue for a fresh round (S4/E4).
+
+        The host's explicit Re-vote on a Done/parked issue (selecting one is
+        view-only). Append-only rounds are preserved — the next accept appends a new
+        `round_number` (EC2); the park reason is dropped since it's no longer parked."""
+        game = self.__get_ongoing_game(game_uuid)
+        issue = game.reopen_current()
+        if issue is None:
+            raise NoCurrentIssueError('No issue is currently selected')
+        Issue.update(status=issue['status'], park_reason=None).where(Issue.id == issue['id']).execute()
+        return game.backlog(), game.state(), game.info()
+
     def park_issue(self, game_uuid: str, status='refinement', reason=None) -> tuple[dict, dict, dict]:
         """Flag the current issue needs-refinement / skipped and advance (S6)."""
         game = self.__get_ongoing_game(game_uuid)

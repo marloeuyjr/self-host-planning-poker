@@ -123,6 +123,8 @@
   "queueRail": {
     "title": "Backlog",
     "progress": "{{done}} / {{total}} estimated",
+    "parked": "Parked ({{count}})",
+    "estimate-label": "Estimate: {{value}}",
     "status": {
       "pending": "Pending",
       "estimating": "Voting",
@@ -130,6 +132,17 @@
       "refinement": "Refine",
       "skipped": "Skipped"
     }
+  },
+  "issueResolved": {
+    "estimated-label": "Estimated",
+    "recorded": "Recorded",
+    "revote": "Re-vote",
+    "refinement-label": "Needs refinement",
+    "skipped-label": "Skipped",
+    "reopen": "Re-open",
+    "no-reason": "No reason given",
+    "driver-only": "The session driver can re-open this issue.",
+    "take-control": "Take control"
   },
   "resume": {
     "notice": "Session resumed — please re-vote the current issue (in-flight votes are not restored)."

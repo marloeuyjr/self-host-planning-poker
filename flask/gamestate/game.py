@@ -5,10 +5,6 @@ from gamestate.exceptions import (PlayerNotInGameError, InvalidCardValueError,
                                   IssueNotInBacklogError)
 from gamestate.player import Player
 
-# Statuses that are terminal for navigation: selecting another issue must not
-# silently un-mark an estimate that was already accepted.
-_TERMINAL_STATUSES = ('estimated',)
-
 
 class Game:
     """Class representing the state of a game of Planning Poker"""
@@ -161,12 +157,14 @@ class Game:
         return self.__backlog[self.__current]
 
     def select_issue(self, index: int) -> list:
-        """Move the current-issue pointer to `index` and start a fresh vote (S4).
+        """Move the current-issue pointer to `index` (S4).
 
-        Reverts the previously-active issue to `pending` if it was never completed,
-        flips the target to `estimating` (which re-opens a parked issue, S6), and
-        clears the table so prior votes don't carry over. Returns the list of issue
-        dicts whose status changed, so the caller persists exactly those."""
+        Reverts the previously-active issue to `pending` if it was never completed.
+        A *pending* target opens for voting (`estimating`); an already-estimated or
+        parked target is shown VIEW-ONLY — selecting it must never silently re-open
+        an accepted estimate or a parked issue. The host re-opens those explicitly
+        via `reopen_current`. Clears the table either way. Returns the issue dicts
+        whose status changed, so the caller persists exactly those."""
         if not (0 <= index < len(self.__backlog)):
             raise IssueNotInBacklogError(f'No issue at index {index} in the backlog')
         changed = []
@@ -176,12 +174,27 @@ class Game:
             changed.append(previous)
         self.__current = index
         issue = self.__backlog[index]
-        if issue['status'] not in _TERMINAL_STATUSES and issue['status'] != 'estimating':
+        if issue['status'] == 'pending':
             issue['status'] = 'estimating'
             if issue not in changed:
                 changed.append(issue)
         self.end_turn()
         return changed
+
+    def reopen_current(self) -> Optional[dict]:
+        """Re-open the current estimated/parked issue for a fresh round (host Re-vote).
+
+        Selecting a Done/parked issue is view-only; this is the explicit re-open: it
+        flips the issue back to `estimating`, drops any park reason, and clears the
+        table. Append-only history is untouched — the next accept records a new round.
+        Returns the changed issue dict to persist, or None when nothing is selected."""
+        issue = self.current_issue()
+        if issue is None:
+            return None
+        issue['status'] = 'estimating'
+        issue['parkReason'] = None
+        self.end_turn()
+        return issue
 
     def get_cast_votes(self) -> list:
         """The hands of non-spectators who have picked — the input to stats (S5)."""

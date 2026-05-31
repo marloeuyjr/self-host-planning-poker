@@ -12,10 +12,11 @@
     <div class="game-body">
       <shpp-queue-rail />
       <div class="game-table-column">
-        <shpp-card-table class="flex-grow-1" />
+        <shpp-card-table *ngIf="votingActive || showSummary" class="flex-grow-1" />
+        <shpp-issue-resolved *ngIf="!showSummary && !votingActive && isResolved" class="flex-grow-1" />
       </div>
     </div>
     <shpp-turn-summary *ngIf="showSummary" class="bg-body-secondary" />
-    <shpp-card-picker *ngIf="!showSummary" class="bg-body-secondary" />
+    <shpp-card-picker *ngIf="!showSummary && votingActive" class="bg-body-secondary" />
   </ng-container>
 </shpp-container>

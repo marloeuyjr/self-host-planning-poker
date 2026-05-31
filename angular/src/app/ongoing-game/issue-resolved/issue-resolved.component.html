@@ -1,0 +1,29 @@
+<div class="issue-resolved container py-4" *transloco="let t; read 'issueResolved'">
+  <!-- Done: show the recorded estimate; the deck is gone, so it can't be re-voted by accident. -->
+  <div class="issue-resolved__panel" *ngIf="isEstimated">
+    <div class="issue-resolved__metric">
+      <span class="metric-label">{{ t('estimated-label') }}</span>
+      <span class="issue-resolved__value" *ngIf="acceptedValue as v; else recorded">{{ v }}</span>
+      <ng-template #recorded><span class="issue-resolved__value is-empty">{{ t('recorded') }}</span></ng-template>
+    </div>
+    <button *ngIf="isDriver" type="button" class="btn btn-outline-secondary" (click)="reopen()">{{ t('revote') }}</button>
+    <div *ngIf="!isDriver" class="issue-resolved__nondriver">
+      <span class="issue-resolved__hint">{{ t('driver-only') }}</span>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="claimDriver()">{{ t('take-control') }}</button>
+    </div>
+  </div>
+
+  <!-- Parked: show why, and let the driver re-open it for estimation. -->
+  <div class="issue-resolved__panel" *ngIf="isParked">
+    <div class="issue-resolved__metric">
+      <span class="metric-label">{{ isSkipped ? t('skipped-label') : t('refinement-label') }}</span>
+      <span class="issue-resolved__reason" *ngIf="issue?.parkReason as r; else noReason">{{ r }}</span>
+      <ng-template #noReason><span class="issue-resolved__reason is-empty">{{ t('no-reason') }}</span></ng-template>
+    </div>
+    <button *ngIf="isDriver" type="button" class="btn btn-outline-secondary" (click)="reopen()">{{ t('reopen') }}</button>
+    <div *ngIf="!isDriver" class="issue-resolved__nondriver">
+      <span class="issue-resolved__hint">{{ t('driver-only') }}</span>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="claimDriver()">{{ t('take-control') }}</button>
+    </div>
+  </div>
+</div>

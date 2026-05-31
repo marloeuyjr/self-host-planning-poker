@@ -3,28 +3,53 @@
     <header class="queue-rail__head">
       <button type="button" class="queue-rail__toggle" (click)="toggle()" [attr.aria-expanded]="!collapsed">
         <span class="queue-rail__title">{{ t('title') }}</span>
-        <span class="queue-rail__count">{{ t('progress', { done: estimatedCount(backlog), total: backlog.issues.length }) }}</span>
+        <span class="queue-rail__count">{{ t('progress', { done: estimatedCount(backlog), total: toEstimateCount(backlog) }) }}</span>
       </button>
       <div class="queue-rail__bar" role="progressbar"
-           [attr.aria-valuenow]="estimatedCount(backlog)" aria-valuemin="0" [attr.aria-valuemax]="backlog.issues.length">
+           [attr.aria-valuenow]="estimatedCount(backlog)" aria-valuemin="0" [attr.aria-valuemax]="toEstimateCount(backlog)">
         <div class="queue-rail__bar-fill" [style.width.%]="progressPercent(backlog)"></div>
       </div>
     </header>
 
-    <ol class="queue-rail__list" *ngIf="!collapsed">
-      <li *ngFor="let issue of backlog.issues; index as i; trackBy: trackById"
-          class="queue-rail__item"
-          [class.is-current]="i === backlog.currentIndex"
+    <!-- One item, two lines: key + chip/value, then the full-width summary. -->
+    <ng-template #item let-issue let-backlog="backlog">
+      <li class="queue-rail__item"
+          [class.is-current]="indexOf(backlog, issue) === backlog.currentIndex"
           [class.is-locked]="!isDriver"
           [attr.data-status]="issue.status"
           [attr.tabindex]="isDriver ? 0 : -1"
-          (click)="select(i)"
-          (keydown.enter)="select(i)">
-        <span class="queue-rail__dot" [attr.data-status]="issue.status" aria-hidden="true"></span>
-        <span class="queue-rail__key">{{ issue.key }}</span>
-        <span class="queue-rail__summary">{{ issue.summary }}</span>
-        <span class="queue-rail__chip" [attr.data-status]="issue.status">{{ t('status.' + issue.status) }}</span>
+          (click)="select(indexOf(backlog, issue))"
+          (keydown.enter)="select(indexOf(backlog, issue))">
+        <div class="queue-rail__row">
+          <span class="queue-rail__dot" [attr.data-status]="issue.status" aria-hidden="true"></span>
+          <span class="queue-rail__key">{{ issue.key }}</span>
+          <span class="queue-rail__spacer"></span>
+          <span class="queue-rail__value"
+                *ngIf="issue.status === 'estimated' && acceptedValue(backlog, issue) as v"
+                [attr.aria-label]="t('estimate-label', { value: v })">{{ v }}</span>
+          <span class="queue-rail__chip" [attr.data-status]="issue.status"
+                *ngIf="!(issue.status === 'estimated' && acceptedValue(backlog, issue))">{{ t('status.' + issue.status) }}</span>
+        </div>
+        <p class="queue-rail__summary">{{ issue.summary }}</p>
+        <p class="queue-rail__reason" *ngIf="issue.parkReason">{{ issue.parkReason }}</p>
       </li>
-    </ol>
+    </ng-template>
+
+    <ng-container *ngIf="!collapsed">
+      <ol class="queue-rail__list">
+        <ng-container *ngFor="let issue of queued(backlog); trackBy: trackById">
+          <ng-container *ngTemplateOutlet="item; context: { $implicit: issue, backlog: backlog }"></ng-container>
+        </ng-container>
+      </ol>
+
+      <section class="queue-rail__parked" *ngIf="parked(backlog).length">
+        <h3 class="queue-rail__parked-head">{{ t('parked', { count: parked(backlog).length }) }}</h3>
+        <ol class="queue-rail__list">
+          <ng-container *ngFor="let issue of parked(backlog); trackBy: trackById">
+            <ng-container *ngTemplateOutlet="item; context: { $implicit: issue, backlog: backlog }"></ng-container>
+          </ng-container>
+        </ol>
+      </section>
+    </ng-container>
   </aside>
 </ng-container>

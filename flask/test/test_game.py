@@ -375,13 +375,63 @@ class GameTestCase(unittest.TestCase):
         game.select_issue(1)
         self.assertEqual(issues[0]['status'], 'estimated')  # terminal status preserved
 
-    def test_select_issue_reopens_a_parked_issue(self):
+    def test_select_issue_views_parked_without_reopening(self):
+        # Behaviour change (see decisions): selecting a parked issue VIEWS it; it must
+        # not silently re-open for voting. The host re-opens explicitly (reopen_current).
         game = Game('Sprint')
         issues = self._backlog()
         issues[2]['status'] = 'refinement'
         game.set_backlog(issues, current=0)
+        changed = game.select_issue(2)
+        self.assertEqual(game.backlog()['currentIndex'], 2)  # pointer moved (view)
+        self.assertEqual(issues[2]['status'], 'refinement')  # NOT re-opened
+        self.assertNotIn(issues[2], changed)                 # nothing to persist for it
+
+    def test_select_issue_views_estimated_without_reopening(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[2]['status'] = 'estimated'
+        game.set_backlog(issues, current=0)
         game.select_issue(2)
-        self.assertEqual(issues[2]['status'], 'estimating')  # re-opened (S6)
+        self.assertEqual(game.backlog()['currentIndex'], 2)
+        self.assertEqual(issues[2]['status'], 'estimated')   # preserved, view-only
+
+    def test_reopen_current_reopens_an_estimated_issue(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[1]['status'] = 'estimated'
+        game.set_backlog(issues, current=1)
+        changed = game.reopen_current()
+        self.assertEqual(issues[1]['status'], 'estimating')  # explicit host re-open
+        self.assertIs(changed, issues[1])
+
+    def test_reopen_current_clears_park_reason(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'refinement'
+        issues[0]['parkReason'] = 'missing AC'
+        game.set_backlog(issues, current=0)
+        game.reopen_current()
+        self.assertEqual(issues[0]['status'], 'estimating')
+        self.assertIsNone(issues[0]['parkReason'])           # no longer parked
+
+    def test_reopen_current_clears_table(self):
+        game = Game('Sprint')
+        issues = self._backlog()
+        issues[0]['status'] = 'estimated'
+        game.set_backlog(issues, current=0)
+        player = Mock()
+        player.configure_mock(**{'spectator': False})
+        game.player_joins('p', player)
+        game.reveal_hands()
+        game.reopen_current()
+        self.assertFalse(game.get_revealed())
+        player.clear_hand.assert_called()
+
+    def test_reopen_current_without_issue_returns_none(self):
+        game = Game('Sprint')
+        game.set_backlog(self._backlog(), current=None)
+        self.assertIsNone(game.reopen_current())
 
     def test_select_issue_clears_table(self):
         game = Game('Sprint')

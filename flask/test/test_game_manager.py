@@ -435,16 +435,59 @@ class GameManagerTestCase(unittest.TestCase):
         statuses = {i.jira_key: i.status for i in sg.issues}
         self.assertEqual(statuses['OPS-2'], 'estimating')
 
-    def test_parked_issue_excluded_then_reselectable(self):
+    def test_parked_issue_is_view_only_on_reselect(self):
+        # Behaviour change (see decisions): re-selecting a parked issue VIEWS it; it
+        # does not silently re-open for voting. Re-opening is the explicit host action.
         gm = GameManager()
         issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
         game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
         gm.select_issue(game_id, 0)
         gm.park_issue(game_id, 'skipped', None)
-        # re-select the parked issue later — it re-opens for voting (S4 rule)
         backlog, _, _ = gm.select_issue(game_id, 0)
         self.assertEqual(backlog['currentIndex'], 0)
+        self.assertEqual(backlog['issues'][0]['status'], 'skipped')   # viewed, not re-opened
+
+    def test_reopen_issue_reopens_parked_and_clears_reason(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)
+        parked_id = gm.get(game_id).current_issue()['id']
+        gm.park_issue(game_id, 'refinement', 'needs AC')   # advances to OPS-2
+        gm.select_issue(game_id, 0)                        # view the parked issue
+        self.assertEqual(gm.get(game_id).current_issue()['status'], 'refinement')
+        backlog, _, _ = gm.reopen_issue(game_id)           # explicit host re-open
+        self.assertEqual(backlog['currentIndex'], 0)
         self.assertEqual(backlog['issues'][0]['status'], 'estimating')
+        parked = Issue.get(Issue.id == parked_id)
+        self.assertEqual(parked.status, 'estimating')      # persisted
+        self.assertIsNone(parked.park_reason)              # reason dropped on re-open
+
+    def test_reopen_estimated_issue_appends_next_round(self):
+        # The host re-votes a Done issue: prior rounds survive (append-only, EC2).
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [5, 5])     # OPS-1 selected, 2 voters
+        gm.reveal_cards(game_id)
+        issue0_id = game.current_issue()['id']
+        gm.accept_estimate(game_id, final_value=5)         # round 1 → estimated, advance
+        gm.select_issue(game_id, 0)                        # view OPS-1 (estimated)
+        gm.reopen_issue(game_id)                            # host re-vote
+        self.assertEqual(game.current_issue()['status'], 'estimating')
+        self.assertEqual(game.current_round(), 2)          # prior round preserved
+        for _, p in game.list_players():
+            p.set_hand(8)
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id, final_value=8)
+        rounds = [r.round_number for r in EstimationResult.select()
+                  .where(EstimationResult.issue == issue0_id)
+                  .order_by(EstimationResult.round_number)]
+        self.assertEqual(rounds, [1, 2])                   # append-only
+
+    def test_reopen_without_current_issue_raises(self):
+        gm = GameManager()
+        game_id = gm.create('No backlog', 'FIBONACCI')
+        with self.assertRaises(NoCurrentIssueError):
+            gm.reopen_issue(game_id)
 
     def test_park_without_current_issue_raises(self):
         gm = GameManager()

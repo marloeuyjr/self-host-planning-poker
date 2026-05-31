@@ -232,6 +232,18 @@ def select_issue(data):
 
 
 @socketio.event
+def reopen_issue():
+    game_id = session['game_id']
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog, state, info = gm.reopen_issue(game_id)
+    emit('state', state, to=game_id, json=True)
+    emit('info', info, to=game_id, json=True)
+    emit('backlog', backlog, to=game_id, json=True)
+    emit('new_game', to=game_id)
+
+
+@socketio.event
 def park_issue(data):
     game_id = session['game_id']
     status = (data.get('status') if data else None) or 'refinement'
