@@ -190,6 +190,11 @@ export class CurrentGameService {
     this.socket.emit('revote', (response?: ErrorMessage) => this.handleError(response));
   }
 
+  /** Host re-opens an already-resolved or parked issue for a fresh round (S4). */
+  public reopenIssue(): void {
+    this.socket.emit('reopen_issue', (response?: ErrorMessage) => this.handleError(response));
+  }
+
   public parkIssue(status: 'refinement' | 'skipped', reason: string | null): void {
     this.socket.emit('park_issue', { status: status, reason: reason }, (response?: ErrorMessage) => this.handleError(response));
   }

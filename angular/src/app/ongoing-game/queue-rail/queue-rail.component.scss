@@ -1,9 +1,10 @@
-// Left rail — flat slate-800 panel, single hairline, no nested cards. Status is
-// carried by a small dot + chip so the list stays dense and scannable.
+// Left rail — flat slate-800 panel, single hairlines, no nested cards. Each item
+// is two lines: a key/chip header row and the summary below it, so a long Jira key
+// can never crush the summary (the single-line grid did exactly that at 1080p).
 .queue-rail {
   display: flex;
   flex-direction: column;
-  width: 17rem;
+  width: 18.5rem;
   flex: 0 0 auto;
   background: var(--brand-surface-2);
   border-right: 1px solid var(--brand-hairline);
@@ -48,6 +49,7 @@
   font-family: var(--bs-font-monospace, monospace);
   font-size: 0.8rem;
   color: var(--brand-emerald-400);
+  white-space: nowrap;
 }
 
 // Thin X-of-N progress bar — the only adornment.
@@ -72,11 +74,8 @@
 }
 
 .queue-rail__item {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
+  display: block;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--brand-hairline);
   cursor: pointer;
   transition: background var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
@@ -104,7 +103,19 @@
   }
 }
 
+// Line 1 — key on the left, status chip / accepted value on the right.
+.queue-rail__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.queue-rail__spacer {
+  flex: 1 1 auto;
+}
+
 .queue-rail__dot {
+  flex: 0 0 auto;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -117,21 +128,42 @@
 }
 
 .queue-rail__key {
+  flex: 0 1 auto;
+  min-width: 0;                 // allow the key to shrink + ellipsis if it's very long
   font-family: var(--bs-font-monospace, monospace);
   font-size: 0.78rem;
   color: var(--brand-text-secondary);
   white-space: nowrap;
-}
-
-.queue-rail__summary {
-  font-size: 0.82rem;
-  color: var(--brand-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+// Line 2 — the summary, full rail width, clamped to two lines.
+.queue-rail__summary {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: var(--brand-text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Captured park reason, shown muted under a parked issue's summary.
+.queue-rail__reason {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--brand-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .queue-rail__chip {
+  flex: 0 0 auto;
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -139,11 +171,45 @@
   border-radius: 0.65rem;
   border: 1px solid var(--brand-hairline-strong);
   color: var(--brand-text-muted);
+  white-space: nowrap;
 
   &[data-status='estimating'] { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
-  &[data-status='estimated']  { color: var(--brand-emerald-400); border-color: var(--brand-emerald-600); }
   &[data-status='refinement'],
   &[data-status='skipped']    { color: var(--brand-text-secondary); }
+}
+
+// The accepted estimate on a Done issue — numbers are primary content, so it reads
+// as a solid emerald metric badge rather than another outlined chip.
+.queue-rail__value {
+  flex: 0 0 auto;
+  min-width: 1.5rem;
+  text-align: center;
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.35rem;
+  background: var(--brand-emerald-600);
+  color: var(--brand-slate-950);
+}
+
+// Parked zone — a labelled, de-emphasised section below the live queue (S6).
+.queue-rail__parked {
+  border-top: 1px solid var(--brand-hairline-strong);
+}
+
+.queue-rail__parked-head {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.3rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-text-muted);
+}
+
+.queue-rail__parked .queue-rail__summary {
+  color: var(--brand-text-secondary);
 }
 
 // Stack the rail above the table on narrow viewports.

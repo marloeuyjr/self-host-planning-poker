@@ -1,0 +1,65 @@
+// Replaces the card table for a resolved issue. Dense, centred, dashboard-style —
+// the recorded number is the primary content (Done), or the park reason (parked).
+:host {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.issue-resolved {
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  align-items: center;
+}
+
+.issue-resolved__panel {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.issue-resolved__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.issue-resolved__value {
+  font-family: var(--bs-font-monospace, monospace);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--brand-emerald-400);
+
+  &.is-empty {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--brand-text-secondary);
+  }
+}
+
+.issue-resolved__reason {
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--brand-text-primary);
+  max-width: 34rem;
+
+  &.is-empty {
+    color: var(--brand-text-muted);
+    font-style: italic;
+  }
+}
+
+.issue-resolved__nondriver {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.issue-resolved__hint {
+  font-size: 0.85rem;
+  color: var(--brand-text-muted);
+}

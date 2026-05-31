@@ -126,6 +126,35 @@ class SocketIntegrationTestCase(unittest.TestCase):
         self.assertEqual(Issue.get(Issue.id == parked_id).status, 'refinement')
         self.assertEqual(Issue.get(Issue.id == parked_id).park_reason, 'missing AC')
 
+    def test_select_is_view_only_and_reopen_revotes_a_done_issue(self):
+        game_id = self._new_backlog_game()
+        driver, _ = self._join(game_id, 'Ann')
+        guest, _ = self._join(game_id, 'Bob')
+        issue0_id = _last(driver.get_received(), 'backlog')['issues'][0]['id']
+
+        driver.emit('select_issue', {'index': 0})
+        driver.emit('pick_card', {'card': 5}); guest.emit('pick_card', {'card': 5})
+        driver.get_received(); guest.get_received()
+        driver.emit('reveal_cards')
+        driver.emit('accept_estimate', {'value': 5})       # round 1 → estimated, advances
+        driver.get_received()
+
+        # Selecting the Done issue VIEWS it — it stays estimated, not re-opened.
+        driver.emit('select_issue', {'index': 0})
+        viewed = _last(driver.get_received(), 'backlog')
+        self.assertEqual(viewed['issues'][0]['status'], 'estimated')
+
+        # A non-driver cannot re-open (soft host gate, 4008).
+        err = guest.emit('reopen_issue', callback=True)
+        self.assertEqual(err.get('code'), 4008)
+
+        # The driver re-opens for a fresh round; the prior result is untouched.
+        driver.emit('reopen_issue')
+        reopened = _last(driver.get_received(), 'backlog')
+        self.assertEqual(reopened['currentIndex'], 0)
+        self.assertEqual(reopened['issues'][0]['status'], 'estimating')
+        self.assertEqual(len(reopened['results'][str(issue0_id)]), 1)   # round 1 preserved
+
     def test_resume_after_restart_flags_resumed(self):
         game_id = self._new_backlog_game()
         driver, _ = self._join(game_id, 'Ann')

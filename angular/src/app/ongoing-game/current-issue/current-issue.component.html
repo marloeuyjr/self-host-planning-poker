@@ -11,7 +11,7 @@
                 [attr.aria-expanded]="descriptionExpanded">
           {{ descriptionExpanded ? t('hide-detail') : t('show-detail') }}
         </button>
-        <button *ngIf="(isDriver$ | async)"
+        <button *ngIf="(isDriver$ | async) && (issue.status === 'pending' || issue.status === 'estimating')"
                 type="button"
                 class="current-issue__toggle"
                 (click)="togglePark()"
