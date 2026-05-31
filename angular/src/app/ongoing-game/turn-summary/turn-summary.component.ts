@@ -145,6 +145,19 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     this.currentGameService.acceptEstimate(this.finalValueInput);
   }
 
+  /**
+   * Same action as clicking the Accept button — identical gating (backlog game,
+   * results present, driver, a value selected) and the same default value
+   * (finalValueInput, seeded from the server's proposedFinalValue). The keyboard
+   * Enter handler routes here so there is a single source of truth.
+   */
+  acceptDefault(): void {
+    if (!this.isBacklogGame() || !this.results || !this.isDriver || this.finalValueInput === null) {
+      return;
+    }
+    this.accept();
+  }
+
   revote(): void {
     this.currentGameService.revote();
   }

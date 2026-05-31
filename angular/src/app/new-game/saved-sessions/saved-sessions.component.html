@@ -1,0 +1,25 @@
+<ng-container *transloco="let t; read 'savedSessions'">
+  <section class="saved-sessions" *ngIf="loaded">
+    <h2 class="saved-sessions__title">{{ t('title') }}</h2>
+
+    <p class="saved-sessions__empty" *ngIf="sessions.length === 0">{{ t('empty') }}</p>
+
+    <ol class="saved-sessions__list" *ngIf="sessions.length > 0">
+      <li class="saved-sessions__item" *ngFor="let session of sessions"
+          tabindex="0" role="link"
+          [attr.aria-label]="t('open', { name: session.name })"
+          (click)="open(session)" (keydown.enter)="open(session)">
+        <div class="saved-sessions__row">
+          <span class="saved-sessions__name">{{ session.name }}</span>
+          <span class="saved-sessions__spacer"></span>
+          <span class="saved-sessions__chip" *transloco="let n; read 'deckNames'">{{ n(session.deck) }}</span>
+        </div>
+        <div class="saved-sessions__row saved-sessions__meta">
+          <span class="saved-sessions__count">{{ t('estimated', { done: session.estimated, total: session.total }) }}</span>
+          <span class="saved-sessions__spacer"></span>
+          <span class="saved-sessions__date" *ngIf="session.createdAt">{{ session.createdAt | date:'medium' }}</span>
+        </div>
+      </li>
+    </ol>
+  </section>
+</ng-container>

@@ -70,7 +70,7 @@
     </div>
     <div class="turn-summary__actions">
       <button class="btn btn-outline-secondary" type="button" (click)="revote()">{{ t('revote') }}</button>
-      <button class="btn btn-primary" type="button" (click)="accept()" [disabled]="finalValueInput === null">{{ t('accept') }}</button>
+      <button class="btn btn-primary" type="button" (click)="acceptDefault()" [disabled]="finalValueInput === null">{{ t('accept') }}</button>
     </div>
   </div>
   <p class="turn-summary__hint" *ngIf="isBacklogGame() && results && !isDriver">{{ t('driver-only') }}</p>

@@ -10,6 +10,7 @@ class StoredGame(Model):
     uuid = UUIDField(primary_key=True)
     name = CharField()
     deck = CharField()
+    created_at = DateTimeField(default=datetime.datetime.now, null=True)  # for recall ordering (B2)
 
     class Meta:
         database = database_proxy
@@ -55,30 +56,46 @@ class EstimationResult(Model):
         indexes = ((('issue', 'round_number'), True),)
 
 
-# Columns added to `Issue` after its table first shipped (S1). On a fresh DB peewee
-# creates them from the model; on a DB that already has the S1 `issue` table they are
-# added by a guarded `ALTER TABLE`. Both paths are idempotent and forward-only.
+# Columns added to a table after it first shipped. On a fresh DB peewee creates them
+# from the model; on a DB that already has the older table they are added by a guarded
+# `ALTER TABLE`. Both paths are idempotent and forward-only.
 _ISSUE_ADDED_COLUMNS = {
-    'url': 'VARCHAR',
-    'park_reason': 'TEXT',
+    'url': 'VARCHAR',                # optional Jira link (S3)
+    'park_reason': 'TEXT',          # why an issue was parked / skipped (S6)
+}
+_STOREDGAME_ADDED_COLUMNS = {
+    'created_at': 'DATETIME',       # creation time for recall ordering (B2)
 }
 
 
 def create_tables():
-    """Create all tables if missing, then add any columns introduced after S1.
+    """Create all tables if missing, then add any columns introduced in later slices.
 
     Forward-only, additive migration: existing `StoredGame` rows are untouched; the
     `Issue` / `EstimationResult` tables are created on boot if absent, and columns
-    added to `Issue` in later slices (`url`, `park_reason`) are appended in place on
-    an older DB. Idempotent — safe to run on every startup. Replaces the old single
-    `StoredGame.create_table()` startup call.
+    added in later slices are appended in place on an older DB (`url`, `park_reason`
+    on `issue`; `created_at` on `storedgame`). Idempotent — safe to run on every
+    startup. Replaces the old single `StoredGame.create_table()` startup call.
     """
     database_proxy.create_tables([StoredGame, Issue, EstimationResult])
-    _add_missing_issue_columns()
+    _add_missing_columns('issue', _ISSUE_ADDED_COLUMNS)
+    _add_missing_columns('storedgame', _STOREDGAME_ADDED_COLUMNS)
+
+
+def _add_missing_columns(table_name: str, columns: dict) -> None:
+    """Append any of `columns` (name -> SQL type) absent from `table_name`.
+
+    Guarded `ALTER TABLE ADD COLUMN` per missing column — idempotent and forward-only.
+    Columns added this way are always nullable, so existing rows get NULL (SQLite
+    can't backfill a default like `now()` in an ALTER); for `created_at` those legacy
+    rows simply sort last in the recall list.
+    """
+    existing = {col.name for col in database_proxy.get_columns(table_name)}
+    for name, sql_type in columns.items():
+        if name not in existing:
+            database_proxy.execute_sql(f'ALTER TABLE {table_name} ADD COLUMN {name} {sql_type}')
 
 
 def _add_missing_issue_columns():
-    existing = {col.name for col in database_proxy.get_columns('issue')}
-    for name, sql_type in _ISSUE_ADDED_COLUMNS.items():
-        if name not in existing:
-            database_proxy.execute_sql(f'ALTER TABLE issue ADD COLUMN {name} {sql_type}')
+    """Backwards-compatible thin wrapper over the generic column migrator."""
+    _add_missing_columns('issue', _ISSUE_ADDED_COLUMNS)

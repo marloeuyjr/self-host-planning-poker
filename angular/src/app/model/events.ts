@@ -54,6 +54,16 @@ export interface BacklogState {
   results: Record<number, EstimationResultView[]>;
 }
 
+/** A saved game/session for the home-page recall list (B2). */
+export interface SavedSession {
+  uuid: string;
+  name: string;
+  deck: string;
+  total: number;
+  estimated: number;
+  createdAt: string | null;
+}
+
 /** Server-computed stats for one revealed round (S5 — no browser math). */
 export interface RoundResults {
   numeric: boolean;

@@ -9,6 +9,7 @@ import { NavAppTitleComponent } from '../navigation-bar/app-title/nav-app-title.
 import { FooterComponent } from '../shared/footer/footer.component';
 import { PathLocationStrategy } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
+import { SavedSessionsComponent } from './saved-sessions/saved-sessions.component';
 
 @Component({
   standalone: true,
@@ -19,7 +20,8 @@ import { ToastService } from '../shared/toast/toast.service';
     GameFormComponent,
     ContainerComponent,
     NavAppTitleComponent,
-    FooterComponent
+    FooterComponent,
+    SavedSessionsComponent
   ]
 })
 export default class NewGamePageComponent {

@@ -17,7 +17,7 @@ if os.path.exists(os.environ['DATABASE_PATH']):
     os.remove(os.environ['DATABASE_PATH'])
 
 import app as app_module  # noqa: E402  (env must be set first)
-from gamestate.models import EstimationResult, Issue, database_proxy, create_tables  # noqa: E402
+from gamestate.models import EstimationResult, Issue, StoredGame, database_proxy, create_tables  # noqa: E402
 
 
 def _last(received, name):
@@ -126,6 +126,36 @@ class SocketIntegrationTestCase(unittest.TestCase):
         self.assertEqual(Issue.get(Issue.id == parked_id).status, 'refinement')
         self.assertEqual(Issue.get(Issue.id == parked_id).park_reason, 'missing AC')
 
+    def test_add_issues_appends_for_driver_and_gates_others(self):
+        game_id = self._new_backlog_game()
+        driver, _ = self._join(game_id, 'Ann')             # first joiner → driver
+        guest, _ = self._join(game_id, 'Bob')              # non-driver
+
+        driver.emit('select_issue', {'index': 0})          # OPS-1 → estimating
+        driver.get_received(); guest.get_received()        # drain
+
+        # A non-driver cannot append to the queue (soft host gate, 4008).
+        err = guest.emit('add_issues', {'backlog': 'OPS-9  sneaky', 'backlogFormat': 'paste'},
+                         callback=True)
+        self.assertIsInstance(err, dict)
+        self.assertEqual(err.get('code'), 4008)
+        self.assertEqual(Issue.select().where(Issue.game == game_id).count(), 2)   # nothing added
+
+        # The driver appends two issues mid-session; they land at the tail and the
+        # current pointer is untouched (append never disturbs the active round).
+        driver.emit('add_issues', {'backlog': 'OPS-3  late one\nOPS-4  late two',
+                                   'backlogFormat': 'paste'})
+        backlog = _last(driver.get_received(), 'backlog')
+        self.assertEqual([i['key'] for i in backlog['issues']], ['OPS-1', 'OPS-2', 'OPS-3', 'OPS-4'])
+        self.assertEqual(backlog['currentIndex'], 0)       # still on OPS-1
+        self.assertEqual(backlog['issues'][0]['status'], 'estimating')
+        # Persisted at the tail of the order with provenance.
+        rows = list(Issue.select().where(Issue.game == game_id).order_by(Issue.order_index))
+        self.assertEqual([r.order_index for r in rows], [0, 1, 2, 3])
+        added = Issue.get((Issue.game == game_id) & (Issue.jira_key == 'OPS-4'))
+        self.assertEqual(added.source, 'paste')
+        self.assertEqual(added.status, 'pending')
+
     def test_select_is_view_only_and_reopen_revotes_a_done_issue(self):
         game_id = self._new_backlog_game()
         driver, _ = self._join(game_id, 'Ann')
@@ -164,6 +194,73 @@ class SocketIntegrationTestCase(unittest.TestCase):
 
         _, ack = self._join(game_id, 'Cara')               # rejoin → cache-miss rehydrate
         self.assertTrue(ack.get('resumed'))
+
+    def test_sessions_endpoint_empty_db_returns_empty_list(self):
+        # No games created in this test → the recall list is an empty JSON array.
+        StoredGame.delete().execute()                      # clear any rows from prior tests
+        client = self.app.test_client()
+        resp = client.get('/sessions')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.get_json(), [])
+
+    def test_sessions_endpoint_lists_games_with_counts_newest_first(self):
+        StoredGame.delete().execute()                      # isolate from other tests' rows
+
+        # Older game with a backlog; estimate one issue so it has a real estimated count.
+        older_id = self._new_backlog_game()                # 2 issues: OPS-1, OPS-2
+        driver, _ = self._join(older_id, 'Ann')
+        guest, _ = self._join(older_id, 'Bob')
+        driver.emit('select_issue', {'index': 0})
+        driver.emit('pick_card', {'card': 5}); guest.emit('pick_card', {'card': 5})
+        driver.get_received(); guest.get_received()
+        driver.emit('reveal_cards')
+        driver.emit('accept_estimate', {'value': 5})       # OPS-1 → estimated
+
+        # Newer game with a single issue, none estimated.
+        newer_id = self.gm.create('Sprint Next', 'POWERS',
+                                  [{'jira_key': 'OPS-9', 'summary': 'solo'}], source='paste')
+
+        client = self.app.test_client()
+        resp = client.get('/sessions')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 2)
+
+        # Newest-first ordering: the more recently created game comes first.
+        self.assertEqual(data[0]['uuid'], newer_id)
+        self.assertEqual(data[1]['uuid'], older_id)
+
+        by_uuid = {s['uuid']: s for s in data}
+        older = by_uuid[older_id]
+        self.assertEqual(older['name'], 'Sprint')
+        self.assertEqual(older['deck'], 'FIBONACCI')
+        self.assertEqual(older['total'], 2)
+        self.assertEqual(older['estimated'], 1)
+        self.assertIsNotNone(older['createdAt'])
+
+        newer = by_uuid[newer_id]
+        self.assertEqual(newer['name'], 'Sprint Next')
+        self.assertEqual(newer['deck'], 'POWERS')
+        self.assertEqual(newer['total'], 1)
+        self.assertEqual(newer['estimated'], 0)
+
+    def test_sessions_endpoint_legacy_null_created_at_sorts_last(self):
+        StoredGame.delete().execute()
+
+        # A timestamped game and a legacy game whose created_at is NULL (predates B2).
+        recent_id = self.gm.create('Recent', 'FIBONACCI')
+        legacy_id = str(__import__('uuid').uuid4())
+        StoredGame.insert(uuid=legacy_id, name='Legacy', deck='POWERS',
+                          created_at=None).execute()
+
+        resp = self.app.test_client().get('/sessions')
+        data = resp.get_json()
+        self.assertEqual([s['uuid'] for s in data], [recent_id, legacy_id])
+        legacy = next(s for s in data if s['uuid'] == legacy_id)
+        self.assertIsNone(legacy['createdAt'])
+        self.assertEqual(legacy['total'], 0)
+        self.assertEqual(legacy['estimated'], 0)
 
 
 if __name__ == '__main__':

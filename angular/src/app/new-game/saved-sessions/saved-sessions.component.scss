@@ -1,0 +1,91 @@
+// Saved-sessions recall list (B2) — dense slate panel on the home page, mirroring
+// the queue-rail's flat list aesthetic (no nested cards, single hairlines).
+.saved-sessions {
+  margin-top: 1.5rem;
+}
+
+.saved-sessions__title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.saved-sessions__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--brand-hairline);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.saved-sessions__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--brand-hairline);
+  transition: background var(--brand-motion-fast, 120ms) var(--brand-motion-ease, ease-out);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: var(--brand-surface-3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-emerald-500);
+    outline-offset: -2px;
+  }
+}
+
+.saved-sessions__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.saved-sessions__name {
+  font-weight: 600;
+  color: var(--brand-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-sessions__deck {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-text-secondary);
+  font-family: var(--bs-font-monospace, monospace);
+}
+
+.saved-sessions__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--brand-text-muted);
+  font-family: var(--bs-font-monospace, monospace);
+}
+
+.saved-sessions__progress {
+  color: var(--brand-emerald-400);
+}
+
+.saved-sessions__empty {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--brand-text-muted);
+  border: 1px dashed var(--brand-hairline-strong);
+  border-radius: 0.375rem;
+}

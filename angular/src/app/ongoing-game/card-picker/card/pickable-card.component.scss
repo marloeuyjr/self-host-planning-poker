@@ -13,7 +13,33 @@
 }
 
 .card-border {
+  position: relative;   // anchor for the key-hint badge
   margin: 0.5rem;
+}
+
+// Keyboard focus ring. The tabindex / role=button live on the host element
+// (<shpp-pickable-card>), so :focus-visible lands on the host; the inner-div
+// fallback covers direct focus too. Emerald to match the brand accent.
+:host(:focus-visible) {
+  outline: none;
+}
+
+:host(:focus-visible) .card-border,
+.card-border:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--brand-emerald-500);
+}
+
+// Small, monospaced, muted digit hint tucked into the card's top-right corner.
+.card-key-hint {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--brand-slate-400);   // muted text token
+  pointer-events: none;
 }
 
 .clickable {
@@ -45,7 +71,7 @@
   border-color: var(--brand-emerald-500);
   background-color: color-mix(in oklab, var(--brand-emerald-500) 12%, var(--brand-card-bg));
   box-shadow:
-    0 0 0 1px var(--brand-emerald-500),
+    0 0 0 2px var(--brand-emerald-500),
     0 10px 30px -12px rgba(16, 185, 129, 0.55);
 
   .card-value {
@@ -54,5 +80,20 @@
 
   &:hover {
     transform: translateY(-14px);  // don't lift further on hover when already selected
+  }
+}
+
+// Respect users who ask for less motion: drop the lift transition and the
+// hover/active/selected translate so cards change state instantly.
+@media (prefers-reduced-motion: reduce) {
+  .card-border {
+    transition: none;
+  }
+
+  .clickable:hover,
+  .clickable:active,
+  .selected,
+  .selected:hover {
+    transform: none;
   }
 }

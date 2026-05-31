@@ -139,6 +139,16 @@ class Game:
         active = self.current_issue()
         self.__resumed = active is not None and active['status'] == 'estimating'
 
+    def append_issues(self, new_dicts: list) -> None:
+        """Append already-persisted issue dicts to the end of the queue (B1).
+
+        Each dict carries its real DB `id`, contiguous `orderIndex`, and
+        `status='pending'`. Deliberately a pure in-memory append: it preserves the
+        current-issue pointer and any in-flight (pre-reveal) round — it does NOT
+        touch `__current`, `__revealed`, player hands, or `__results`. Adding to the
+        backlog mid-session never disturbs the round already underway."""
+        self.__backlog.extend(new_dicts)
+
     def has_backlog(self) -> bool:
         return len(self.__backlog) > 0
 

@@ -3,7 +3,7 @@ import os
 import sys
 import uuid
 
-from flask import Flask, request, session, render_template
+from flask import Flask, request, session, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from peewee import SqliteDatabase, OperationalError
@@ -60,6 +60,13 @@ def create():
         return gm.create(game_name, game_deck, issues, source=backlog_format if issues else None)
     except PlanningPokerException as e:
         return str(e), 400
+
+
+@app.route('/sessions')
+def sessions():
+    # Saved-session recall list for the home page (B2). Read-only; declared before the
+    # catch-all so the `<path:path>` converter never swallows it. Returns a JSON array.
+    return jsonify(gm.list_sessions())
 
 
 @app.route('/<string:file>.<string:ext>')
@@ -255,6 +262,19 @@ def park_issue(data):
     emit('info', info, to=game_id, json=True)
     emit('backlog', backlog, to=game_id, json=True)
     emit('new_game', to=game_id)
+
+
+@socketio.event
+def add_issues(data):
+    game_id = session['game_id']
+    text = data.get('backlog') if data else None
+    fmt = (data.get('backlogFormat') if data else None) or 'paste'
+
+    gm.require_driver(game_id, session['player_id'])
+    backlog = gm.add_issues(game_id, text, fmt)
+    # Append touches neither the players nor the active round, so only the backlog
+    # is re-broadcast (no state / info / new_game).
+    emit('backlog', backlog, to=game_id, json=True)
 
 
 @socketio.event
