@@ -14,7 +14,7 @@ export interface Player {
 
 export interface PlayerState extends Player {
   hasPicked?: boolean;
-  hand?: number;
+  hand?: number | string;   // '?' when the player abstained
 }
 
 export type GameState = Record<string, PlayerState>;

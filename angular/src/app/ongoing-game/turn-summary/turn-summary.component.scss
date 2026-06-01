@@ -139,6 +139,33 @@
   margin: 0;
 }
 
+// Abstain tally — a muted footnote to the distribution. The dashed glyph echoes
+// the forecast motif and signals "participated, but not a scored value."
+.turn-summary__abstains {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 1.25rem 0 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--brand-text-muted);
+}
+
+.turn-summary__abstains-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 1px dashed var(--brand-hairline-strong);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
 .turn-summary__controls {
   display: flex;
   flex-wrap: wrap;

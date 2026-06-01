@@ -94,6 +94,20 @@ class GameTestCase(unittest.TestCase):
             game.player_picks(uuid1, 13)
         self.assertEqual(str(ex2.exception), 'Card value 13 is not valid. Current deck is POWERS')
 
+    def test_player_picks_abstain(self):
+        """'?' (abstain) is a valid pick on Fibonacci; the dropped high cards are not."""
+        game = Game('PBR Team Pizza', Deck.FIBONACCI)
+        uuid = '2c6f0ffa-ad57-47b7-bb34-2275d05018cf'
+        player_mock = Mock()
+        game.player_joins(uuid, player_mock)
+
+        game.player_picks(uuid, '?')
+        player_mock.set_hand.assert_called_with('?')
+
+        # 34/55/89 were removed when Fibonacci was capped at 21 — no longer valid.
+        with self.assertRaises(InvalidCardValueError):
+            game.player_picks(uuid, 34)
+
     def test_end_turn(self):
         game = Game('PBR Team Pizza')
         player_1 = Mock()
