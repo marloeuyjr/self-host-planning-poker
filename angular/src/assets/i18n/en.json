@@ -64,6 +64,7 @@
     "consensus": "Consensus",
     "divergence": "No consensus",
     "no-votes": "No votes cast.",
+    "abstains-label": "{{count}} abstained",
     "final-label": "Final estimate",
     "accept": "Accept estimate",
     "revote": "Re-vote",

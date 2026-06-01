@@ -85,6 +85,12 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     return !!this.results && this.results.count > 0;
   }
 
+  /** Players who picked the abstain card ('?') this round — they participated
+   *  but are excluded from the distribution and the mean (stats.ABSTAIN). */
+  get abstainCount(): number {
+    return this.results?.abstains ?? 0;
+  }
+
   get isNumeric(): boolean {
     return !!this.results && this.results.numeric;
   }
@@ -135,6 +141,14 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     } else {
       return 'text-success';
     }
+  }
+
+  /** Deck cards the driver may pick as the final estimate — numeric only. The
+   *  abstain card ('?') records participation but is never an acceptable final
+   *  value, so it is excluded from the picker. */
+  get finalValueCards(): { value: number; display: number | string }[] {
+    return this.deck.values.filter(
+      (c): c is { value: number; display: number | string } => typeof c.value === 'number');
   }
 
   setFinalValue(value: number): void {

@@ -13,7 +13,7 @@
   <div class="row g-4 align-items-stretch">
     <!-- Vote distribution (server-side) -->
     <div class="col-12 col-md-7 col-lg-8">
-      <div class="turn-summary__distribution" *ngIf="hasVotes; else noVotes">
+      <div class="turn-summary__distribution" *ngIf="hasVotes">
         <div *ngFor="let item of distributionEntries; index as i"
              class="turn-summary__bucket"
              [class.is-winner]="i === 0">
@@ -25,7 +25,14 @@
           <p class="turn-summary__bucket-label">{{ t('votes-label', { votes: item.value }) }}</p>
         </div>
       </div>
-      <ng-template #noVotes><p class="turn-summary__empty">{{ t('no-votes') }}</p></ng-template>
+      <!-- Abstains ('?') participate but don't score, so they never appear in the
+           distribution above — surface the count explicitly. -->
+      <p class="turn-summary__abstains" *ngIf="abstainCount > 0">
+        <span class="turn-summary__abstains-glyph" aria-hidden="true">?</span>
+        {{ t('abstains-label', { count: abstainCount }) }}
+      </p>
+      <!-- Genuinely empty round: nobody picked anything, not even abstain. -->
+      <p class="turn-summary__empty" *ngIf="!hasVotes && abstainCount === 0">{{ t('no-votes') }}</p>
     </div>
 
     <!-- Metrics -->
@@ -62,7 +69,7 @@
     <div class="turn-summary__final">
       <span class="metric-label">{{ t('final-label') }}</span>
       <div class="turn-summary__final-cards">
-        <button *ngFor="let card of deck.values" type="button"
+        <button *ngFor="let card of finalValueCards" type="button"
                 class="turn-summary__final-card"
                 [class.is-selected]="finalValueInput === card.value"
                 (click)="setFinalValue(card.value)">{{ card.display }}</button>

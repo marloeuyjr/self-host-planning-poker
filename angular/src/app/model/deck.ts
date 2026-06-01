@@ -1,5 +1,7 @@
 export interface CardValue {
-  value: number;
+  // Usually a number, but the abstain card carries the string '?' so the value
+  // sent on `pick_card` matches the server's abstain sentinel (stats.ABSTAIN).
+  value: number | string;
   display: number | string;
 }
 
@@ -22,9 +24,9 @@ export const decks: Deck[] = [
       { value: 8, display: 8 },
       { value: 13, display: 13 },
       { value: 21, display: 21 },
-      { value: 34, display: 34 },
-      { value: 55, display: 55 },
-      { value: 89, display: 89 },
+      // Abstain: "voted, but I don't understand the issue". Excluded from the mean
+      // server-side (stats.ABSTAIN). Last so the numeric keyboard digits don't shift.
+      { value: '?', display: '?' },
     ]
   },
   {
@@ -94,6 +96,6 @@ export function displayDeckValues(deck: Deck): string {
   return deck.values.map(v => v.display).join(', ');
 }
 
-export function displayCardValue(deck: Deck, cardValue: number): string | number | undefined {
+export function displayCardValue(deck: Deck, cardValue: number | string): string | number | undefined {
   return deck.values.find(c => c.value === cardValue)?.display;
 }
