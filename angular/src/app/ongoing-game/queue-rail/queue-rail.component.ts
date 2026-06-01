@@ -1,5 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { AsyncPipe, NgClass, NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { CurrentGameService } from '../current-game.service';
 import { BacklogState, Issue } from '../../model/events';
@@ -22,12 +23,18 @@ const PARKED_STATUSES = ['refinement', 'skipped'];
   standalone: true,
   templateUrl: './queue-rail.component.html',
   styleUrls: ['./queue-rail.component.scss'],
-  imports: [NgIf, NgFor, NgClass, NgTemplateOutlet, AsyncPipe, TranslocoDirective]
+  imports: [NgIf, NgFor, NgClass, NgTemplateOutlet, AsyncPipe, FormsModule, TranslocoDirective]
 })
 export class QueueRailComponent implements OnDestroy {
   backlog$: Observable<BacklogState | null>;
   collapsed = false;
   isDriver = true;   // only the driver may jump the queue (S8)
+
+  // Collapsible "add issues" mini-form at the rail footer (B1) — driver-only,
+  // mirrors the current-issue park form. Paste/CSV toggle reuses the create UX.
+  addExpanded = false;
+  addText = '';
+  addFormat = 'paste';
 
   private driverSubscription: Subscription;
 
@@ -93,6 +100,25 @@ export class QueueRailComponent implements OnDestroy {
 
   toggle(): void {
     this.collapsed = !this.collapsed;
+  }
+
+  toggleAdd(): void {
+    this.addExpanded = !this.addExpanded;
+  }
+
+  submitAdd(): void {
+    const text = this.addText.trim();
+    if (!text) {
+      return;
+    }
+    this.currentGame.addIssues(text, this.addFormat);
+    this.addText = '';
+    this.addExpanded = false;
+  }
+
+  cancelAdd(): void {
+    this.addText = '';
+    this.addExpanded = false;
   }
 
   trackById(_: number, issue: Issue): number {

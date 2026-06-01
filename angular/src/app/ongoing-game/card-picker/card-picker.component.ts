@@ -59,6 +59,31 @@ export class CardPickerComponent implements OnDestroy {
     }
   }
 
+  /** Pick the card at a positional index (keyboard digits). Reuses selectCard,
+   *  so toggle-to-unpick and the spectator/revealed guards apply. */
+  pickByIndex(index: number): void {
+    if (!this.deck) {
+      return;
+    }
+    const card = this.deck.values[index];
+    if (!card) {
+      return;
+    }
+    this.selectCard(card);
+  }
+
+  /** Digit hint for the i-th card: 1..9 for the first nine, 0 for the tenth,
+   *  none beyond (the 11th card on the Fibonacci decks is Tab-reachable). */
+  keyHintFor(i: number): string | undefined {
+    if (i < 9) {
+      return String(i + 1);
+    }
+    if (i === 9) {
+      return '0';
+    }
+    return undefined;
+  }
+
   ngOnDestroy(): void {
     this.deckSubscription.unsubscribe();
     this.newGameSubscription.unsubscribe();

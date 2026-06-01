@@ -495,6 +495,77 @@ class GameManagerTestCase(unittest.TestCase):
         with self.assertRaises(NoCurrentIssueError):
             gm.park_issue(game_id, 'refinement', None)
 
+    # --- B1: add issues to a live session's queue ---
+
+    def test_add_issues_appends_at_end(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        backlog = gm.add_issues(game_id, 'OPS-3  late arrival', 'paste')
+        self.assertEqual([i['key'] for i in backlog['issues']], ['OPS-1', 'OPS-2', 'OPS-3'])
+        last = backlog['issues'][-1]
+        self.assertEqual(last['orderIndex'], 2)
+        sg = StoredGame.get(StoredGame.uuid == game_id)
+        added = Issue.get((Issue.game == game_id) & (Issue.jira_key == 'OPS-3'))
+        self.assertEqual(added.order_index, 2)
+
+    def test_add_issues_dedupes_existing_keys(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        backlog = gm.add_issues(game_id, 'OPS-1  dup\nOPS-2  new', 'paste')
+        # OPS-1 already exists, so only OPS-2 is appended.
+        self.assertEqual([i['key'] for i in backlog['issues']], ['OPS-1', 'OPS-2'])
+
+    def test_add_issues_preserves_current_pointer(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 1)
+        backlog = gm.add_issues(game_id, 'OPS-3  late', 'paste')
+        self.assertEqual(backlog['currentIndex'], 1)   # pointer untouched by append
+
+    def test_add_issues_preserves_inflight_vote(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}, {'jira_key': 'OPS-2', 'summary': 'b'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        gm.select_issue(game_id, 0)
+        game = gm.get(game_id)
+        p = Player('Ann', False)
+        game.player_joins('p1', p)
+        game.player_picks('p1', 5)
+        gm.add_issues(game_id, 'OPS-3  late', 'paste')
+        # The append must not clear hands or flip revealed for the in-flight round.
+        self.assertEqual(game.get_player('p1').get_hand(), 5)
+        self.assertFalse(game.get_revealed())
+
+    def test_add_issues_to_empty_backlog_leaves_current_none(self):
+        gm = GameManager()
+        game_id = gm.create('No backlog', 'FIBONACCI')   # classic game, no issues
+        backlog = gm.add_issues(game_id, 'OPS-1  one\nOPS-2  two', 'paste')
+        self.assertEqual([i['key'] for i in backlog['issues']], ['OPS-1', 'OPS-2'])
+        self.assertIsNone(backlog['currentIndex'])       # never auto-selects
+
+    def test_add_issues_persists_rows(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'a'}]
+        game_id = gm.create('Sprint', 'FIBONACCI', issues, source='paste')
+        before = Issue.select().count()
+        gm.add_issues(game_id, 'OPS-2  new\nOPS-3  newer', 'paste')
+        self.assertEqual(Issue.select().count(), before + 2)
+        added = list(Issue.select().where((Issue.game == game_id) &
+                                          (Issue.jira_key << ['OPS-2', 'OPS-3'])))
+        self.assertEqual(len(added), 2)
+        self.assertTrue(all(r.source == 'paste' for r in added))
+        self.assertTrue(all(r.status == 'pending' for r in added))
+
+    def test_add_issues_invalid_raises(self):
+        from gamestate.exceptions import InvalidBacklogError
+        gm = GameManager()
+        game_id = gm.create('Sprint', 'FIBONACCI')
+        with self.assertRaises(InvalidBacklogError):
+            gm.add_issues(game_id, 'OPS-1', 'paste')     # a key with no summary
+
     # --- S7: rejoin token + scoped resume ---
 
     def test_join_token_reattaches_same_identity(self):

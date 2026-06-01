@@ -125,6 +125,12 @@
     "progress": "{{done}} / {{total}} estimated",
     "parked": "Parked ({{count}})",
     "estimate-label": "Estimate: {{value}}",
+    "add": "+ Add issues",
+    "addPlaceholder": "OPS-3  Add nightly backup job\nOPS-4  Tune the readiness probe",
+    "addSubmit": "Add",
+    "addCancel": "Cancel",
+    "formatPaste": "Paste",
+    "formatCsv": "CSV",
     "status": {
       "pending": "Pending",
       "estimating": "Voting",
@@ -132,6 +138,12 @@
       "refinement": "Refine",
       "skipped": "Skipped"
     }
+  },
+  "savedSessions": {
+    "title": "Saved sessions",
+    "empty": "No saved sessions yet.",
+    "estimated": "{{done}} / {{total}} estimated",
+    "open": "Open session {{name}}"
   },
   "issueResolved": {
     "estimated-label": "Estimated",
@@ -146,5 +158,18 @@
   },
   "resume": {
     "notice": "Session resumed — please re-vote the current issue (in-flight votes are not restored)."
+  },
+  "keyboardHelp": {
+    "title": "Keyboard shortcuts",
+    "pick": "Pick a card",
+    "unpick": "Press the same key again to clear",
+    "reveal": "Reveal cards",
+    "advance": "Next turn / advance",
+    "accept": "Accept estimate",
+    "next": "Next issue",
+    "prev": "Previous issue",
+    "detail": "Toggle issue details",
+    "help": "Show this help",
+    "close": "Close"
   }
 }

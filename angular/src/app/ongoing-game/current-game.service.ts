@@ -199,6 +199,13 @@ export class CurrentGameService {
     this.socket.emit('park_issue', { status: status, reason: reason }, (response?: ErrorMessage) => this.handleError(response));
   }
 
+  /** Append parsed issues to the live session's queue mid-session (B1). The driver
+   *  pastes / imports more rows; the server appends them without disturbing the
+   *  pointer or the in-flight round. */
+  public addIssues(text: string, fmt: string): void {
+    this.socket.emit('add_issues', { backlog: text, backlogFormat: fmt }, (response?: ErrorMessage) => this.handleError(response));
+  }
+
   public claimDriver(): void {
     this.socket.emit('claim_driver', (response?: ErrorMessage) => this.handleError(response));
   }

@@ -7,6 +7,7 @@ from gamestate.deck import Deck
 from gamestate.exceptions import (GameDoesNotExistError, DeckDoesNotExistError,
                                   GameNotOngoingError, NoCurrentIssueError, NotDriverError)
 from gamestate.game import Game
+from gamestate.intake import parse_issues
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
 from gamestate.stats import compute_stats
@@ -44,6 +45,39 @@ class GameManager:
             self.__hydrate_backlog(game, stored_game)
         self.games[game_uuid] = game
         return game_uuid
+
+    def list_sessions(self, limit=50) -> list[dict]:
+        """Most-recent saved sessions for the home-page recall list (B2).
+
+        Returns up to `limit` `StoredGame`s newest-first, each with its issue counts:
+        `{uuid, name, deck, total, estimated, createdAt}`. Read-only — a handful of
+        SELECTs, safe on the single eventlet worker. Legacy rows created before the
+        `created_at` column have NULL timestamps and sort last (`DESC NULLS LAST`).
+
+        Deliberately does NOT compute a session points-total: re-opening an issue
+        appends a new round, so a naive sum of `final_value`s would double-count.
+        The correct latest-final-value-per-issue total belongs in the export/detail
+        view, not this list.
+        """
+        games = list(StoredGame
+                     .select()
+                     .order_by(StoredGame.created_at.desc(nulls='LAST'))
+                     .limit(limit))
+        sessions = []
+        for g in games:
+            total = Issue.select().where(Issue.game == g.uuid).count()
+            estimated = (Issue.select()
+                         .where((Issue.game == g.uuid) & (Issue.status == 'estimated'))
+                         .count())
+            sessions.append({
+                'uuid': str(g.uuid),
+                'name': g.name,
+                'deck': g.deck,
+                'total': total,
+                'estimated': estimated,
+                'createdAt': g.created_at.isoformat() if g.created_at else None,
+            })
+        return sessions
 
     def get(self, game_uuid: str) -> Game:
         game = self.games.get(game_uuid)
@@ -234,6 +268,43 @@ class GameManager:
         for changed in game.advance_to_next_pending():
             Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
         return game.backlog(), game.state(), game.info()
+
+    def add_issues(self, game_uuid: str, text: str, fmt='paste') -> dict:
+        """Append parsed issues to a live session's queue, persisted (B1).
+
+        Parses `text` (paste/CSV), drops any keys already in the backlog (idempotent
+        re-paste), and creates the new rows at the tail of the contiguous
+        `order_index` range — all in one transaction. Never auto-selects: the
+        pointer and any in-flight round are left untouched (a classic game gaining
+        its first issues stays at `currentIndex = None` until the driver selects).
+        Lets `InvalidBacklogError` (4007) propagate to the handler. Returns the
+        broadcast-ready backlog payload."""
+        game = self.__get_ongoing_game(game_uuid)
+        parsed = parse_issues(text, fmt)
+        existing = {i['key'] for i in game.backlog()['issues']}
+        new = [p for p in parsed if p['jira_key'] not in existing]
+        if not new:
+            return game.backlog()   # idempotent no-op (re-broadcast is harmless)
+        start = max((i['orderIndex'] for i in game.backlog()['issues']), default=-1) + 1
+        new_dicts = []
+        with database_proxy.atomic():
+            for offset, p in enumerate(new):
+                row = Issue.create(
+                    game=game_uuid, jira_key=p['jira_key'], summary=p['summary'],
+                    description=p.get('description'), url=p.get('url'),
+                    order_index=start + offset, status='pending', source=fmt)
+                new_dicts.append({
+                    'id': row.id,
+                    'key': p['jira_key'],
+                    'summary': p['summary'],
+                    'description': p.get('description'),
+                    'url': p.get('url'),
+                    'status': 'pending',
+                    'parkReason': None,
+                    'orderIndex': start + offset,
+                })
+        game.append_issues(new_dicts)
+        return game.backlog()
 
     @staticmethod
     def __hydrate_backlog(game: Game, stored_game: StoredGame) -> None:

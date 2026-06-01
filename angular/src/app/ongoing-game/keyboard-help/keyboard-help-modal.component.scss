@@ -1,0 +1,59 @@
+// =============================================================================
+// Keyboard cheat-sheet modal — emerald-accented monospace keys on the shared
+// modal surface. Dense and operational; no decoration.
+//
+// The panel (.modal-content) and close button are themed globally in styles.scss
+// (`.modal-content { background: var(--brand-surface-2) }` + the .btn-close
+// invert), so this stylesheet only needs theme-aware *content* colors — the
+// earlier bug was hardcoded light text (slate-200) over the white light-mode
+// panel. Tokens below follow the theme like every other modal.
+// =============================================================================
+
+.modal-title {
+  color: var(--brand-text-primary);
+  font-size: 1.1rem;
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.45rem 1.25rem;
+  align-items: baseline;
+  margin: 0;
+
+  dt {
+    margin: 0;
+    white-space: nowrap;
+    text-align: right;
+    font-weight: 400;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--brand-text-primary);
+  }
+}
+
+.shortcuts__note {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.8rem;
+  color: var(--brand-text-secondary);
+}
+
+// Monospace key chip — a dark emerald-on-slate "key" that reads as an actual
+// keycap on both the dark panel and the light-mode white panel (intentional,
+// like the QR modal's white inset). Theme-invariant by design.
+kbd {
+  display: inline-block;
+  min-width: 1.6rem;
+  padding: 0.12rem 0.4rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.8rem;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--brand-emerald-300);
+  background-color: var(--brand-slate-900);
+  border: 1px solid var(--brand-slate-600);
+  border-radius: 4px;
+}

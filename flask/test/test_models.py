@@ -77,6 +77,51 @@ class ModelsTestCase(unittest.TestCase):
         self.assertEqual(g.issues.count(), 1)
         legacy.close()
 
+    def test_storedgame_has_created_at_after_create_tables(self):
+        # The B2 additive column is present and queryable on a fresh DB, and a new
+        # row gets a real timestamp from the field default.
+        cols = {col.name for col in self.db.get_columns('storedgame')}
+        self.assertIn('created_at', cols)
+        game = self._game()
+        self.assertIsNotNone(StoredGame.get(StoredGame.uuid == game.uuid).created_at)
+
+    def test_legacy_storedgame_without_created_at_migrates_and_rows_survive(self):
+        # A DB whose `storedgame` table predates `created_at` (B2). We simulate the
+        # old schema by creating the table from a column-less model definition, then
+        # boot with the real code: the guarded ALTER must add the column, existing
+        # rows must survive (with NULL created_at — SQLite can't backfill now()), and
+        # the column must be queryable afterwards.
+        from peewee import Model, UUIDField, CharField
+
+        class _LegacyStoredGame(Model):
+            uuid = UUIDField(primary_key=True)
+            name = CharField()
+            deck = CharField()
+
+            class Meta:
+                database = database_proxy
+                table_name = 'storedgame'
+
+        legacy = SqliteDatabase(':memory:')
+        database_proxy.initialize(legacy)
+        legacy.connect()
+        _LegacyStoredGame.create_table()  # old schema: no created_at column
+        self.assertNotIn('created_at', {c.name for c in legacy.get_columns('storedgame')})
+        old = _LegacyStoredGame.create(uuid=str(uuid.uuid4()), name='Legacy', deck='POWERS')
+
+        create_tables()  # boot with the new code: additive migration runs the ALTER
+
+        self.assertIn('created_at', {c.name for c in legacy.get_columns('storedgame')})
+        survivor = StoredGame.get(StoredGame.uuid == old.uuid)
+        self.assertEqual(survivor.name, 'Legacy')
+        self.assertIsNone(survivor.created_at)   # legacy rows sort last
+        # A row created after the migration still gets a timestamp.
+        fresh = StoredGame.create(uuid=str(uuid.uuid4()), name='Fresh', deck='FIBONACCI')
+        self.assertIsNotNone(StoredGame.get(StoredGame.uuid == fresh.uuid).created_at)
+        create_tables()  # idempotent: re-running must not error or re-add the column
+        self.assertEqual(StoredGame.select().count(), 2)
+        legacy.close()
+
 
 if __name__ == '__main__':
     unittest.main()

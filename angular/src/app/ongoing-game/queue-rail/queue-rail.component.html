@@ -50,6 +50,32 @@
           </ng-container>
         </ol>
       </section>
+
+      <!-- Driver-only: append more issues to the queue mid-session (B1). -->
+      <footer class="queue-rail__add" *ngIf="isDriver">
+        <button type="button" class="queue-rail__add-toggle" *ngIf="!addExpanded"
+                (click)="toggleAdd()" [attr.aria-expanded]="addExpanded">
+          {{ t('add') }}
+        </button>
+        <div class="queue-rail__add-form" *ngIf="addExpanded">
+          <div class="queue-rail__add-format" role="group">
+            <label>
+              <input type="radio" name="queueAddFormat" [(ngModel)]="addFormat" value="paste">
+              {{ t('formatPaste') }}
+            </label>
+            <label>
+              <input type="radio" name="queueAddFormat" [(ngModel)]="addFormat" value="csv">
+              {{ t('formatCsv') }}
+            </label>
+          </div>
+          <textarea class="queue-rail__add-text" rows="4" [(ngModel)]="addText"
+                    [placeholder]="t('addPlaceholder')"></textarea>
+          <div class="queue-rail__add-actions">
+            <button type="button" class="queue-rail__add-submit" (click)="submitAdd()">{{ t('addSubmit') }}</button>
+            <button type="button" class="queue-rail__add-cancel" (click)="cancelAdd()">{{ t('addCancel') }}</button>
+          </div>
+        </div>
+      </footer>
     </ng-container>
   </aside>
 </ng-container>
