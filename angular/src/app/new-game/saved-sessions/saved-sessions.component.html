@@ -16,6 +16,16 @@
         </div>
         <div class="saved-sessions__row saved-sessions__meta">
           <span class="saved-sessions__count">{{ t('estimated', { done: session.estimated, total: session.total }) }}</span>
+          <span class="saved-sessions__export">
+            <a class="saved-sessions__export-link"
+               [href]="exportService.csvUrl(session.uuid)" download
+               [attr.aria-label]="t('export.csv-aria', { name: session.name })"
+               (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">{{ t('export.csv') }}</a>
+            <a class="saved-sessions__export-link"
+               [href]="exportService.jsonUrl(session.uuid)" download
+               [attr.aria-label]="t('export.json-aria', { name: session.name })"
+               (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()">{{ t('export.json') }}</a>
+          </span>
           <span class="saved-sessions__spacer"></span>
           <span class="saved-sessions__date" *ngIf="session.createdAt">{{ session.createdAt | date:'medium' }}</span>
         </div>

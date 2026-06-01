@@ -627,6 +627,88 @@ class GameManagerTestCase(unittest.TestCase):
         with self.assertRaises(NotDriverError):
             gm.require_driver(game_id, driver_id)
 
+    # --- v2: session export (CSV / JSON) ---
+
+    def test_export_session_unknown_uuid_returns_none(self):
+        gm = GameManager()
+        self.assertIsNone(gm.export_session(str(uuid.uuid4())))   # route turns this into a 404
+
+    def test_export_session_classic_game_has_no_issues(self):
+        # A backlog-less ("classic") game exports valid, empty output — never crashes.
+        gm = GameManager()
+        game_id = gm.create('Classic', 'FIBONACCI')
+        data = gm.export_session(game_id)
+        self.assertEqual(data['name'], 'Classic')
+        self.assertEqual(data['issues'], [])
+        self.assertEqual(data['total'], 0)
+        self.assertEqual(data['estimated'], 0)
+        self.assertIsNone(data['pointsTotal'])
+
+    def test_export_session_preserves_order_and_base_fields(self):
+        gm = GameManager()
+        issues = [{'jira_key': 'OPS-1', 'summary': 'one'},
+                  {'jira_key': 'OPS-2', 'summary': 'two'},
+                  {'jira_key': 'OPS-3', 'summary': 'three'}]
+        game_id = gm.create('Sprint Export', 'FIBONACCI', issues, source='paste')
+        data = gm.export_session(game_id)
+        self.assertEqual(data['name'], 'Sprint Export')
+        self.assertEqual(data['deck'], 'FIBONACCI')
+        self.assertEqual([i['key'] for i in data['issues']], ['OPS-1', 'OPS-2', 'OPS-3'])
+        self.assertEqual([i['orderIndex'] for i in data['issues']], [0, 1, 2])
+        self.assertEqual(data['total'], 3)
+        self.assertEqual(data['estimated'], 0)
+        self.assertIsNone(data['pointsTotal'])                       # nothing accepted yet
+        self.assertTrue(all(i['finalValue'] is None for i in data['issues']))
+        self.assertTrue(all(i['rounds'] == 0 for i in data['issues']))
+
+    def test_export_session_final_value_ignores_later_revote_round(self):
+        # accept (round 1, final=5) → reopen → revote (round 2, final=None). The export
+        # must report the latest round that *has* a final, not the later null one.
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [5, 5])     # OPS-1 selected, 2 voters
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id, final_value=5)          # round 1 accepted, advances
+        gm.select_issue(game_id, 0)                         # back to OPS-1 (estimated)
+        gm.reopen_issue(game_id)                            # round 2 opens
+        for _, p in game.list_players():
+            p.set_hand(13)                                  # divergent → revote
+        gm.reveal_cards(game_id)
+        gm.revote(game_id)                                  # round 2 persisted, final=None
+        issue0 = next(i for i in gm.export_session(game_id)['issues'] if i['key'] == 'OPS-1')
+        self.assertEqual(issue0['rounds'], 2)               # both rounds recorded
+        self.assertEqual(issue0['finalValue'], 5.0)         # latest *accepted*, not the null revote
+
+    def test_export_session_points_total_sums_latest_per_issue_numeric(self):
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [5, 5])     # OPS-1 selected
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id, final_value=5)          # OPS-1 = 5, advances to OPS-2
+        for _, p in game.list_players():
+            p.set_hand(8)
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id, final_value=8)          # OPS-2 = 8
+        data = gm.export_session(game_id)
+        self.assertEqual(data['estimated'], 2)
+        self.assertEqual(data['pointsTotal'], 13.0)         # 5 + 8, one final per issue
+        by_key = {i['key']: i for i in data['issues']}
+        self.assertEqual(by_key['OPS-1']['finalValue'], 5.0)
+        self.assertEqual(by_key['OPS-2']['finalValue'], 8.0)
+        self.assertEqual(by_key['OPS-1']['voterCount'], 2)  # from the deciding round
+
+    def test_export_session_points_total_null_for_ordinal_deck(self):
+        # T_SHIRTS is ordinal — a per-issue final is still recorded, but summing the
+        # mapped ordinals into a points-total would be nonsense, so pointsTotal is null.
+        gm = GameManager()
+        game_id, game = self._started_game(gm, [3, 3], deck='T_SHIRTS')
+        gm.reveal_cards(game_id)
+        gm.accept_estimate(game_id, final_value=3)
+        data = gm.export_session(game_id)
+        self.assertEqual(data['deck'], 'T_SHIRTS')
+        self.assertEqual(data['estimated'], 1)
+        self.assertIsNone(data['pointsTotal'])              # ordinal deck → no points total
+        by_key = {i['key']: i for i in data['issues']}
+        self.assertEqual(by_key['OPS-1']['finalValue'], 3.0)   # per-issue final still present
+
 
 if __name__ == '__main__':
     unittest.main()

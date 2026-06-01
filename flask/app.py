@@ -1,9 +1,12 @@
+import csv
 import errno
+import io
 import os
+import re
 import sys
 import uuid
 
-from flask import Flask, request, session, render_template, jsonify
+from flask import Flask, request, session, render_template, jsonify, Response
 from flask_cors import CORS
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from peewee import SqliteDatabase, OperationalError
@@ -67,6 +70,51 @@ def sessions():
     # Saved-session recall list for the home page (B2). Read-only; declared before the
     # catch-all so the `<path:path>` converter never swallows it. Returns a JSON array.
     return jsonify(gm.list_sessions())
+
+
+# CSV header order. Kept beside the route so the column contract is obvious; mirrors
+# the per-issue dict keys from `GameManager.export_session`.
+_EXPORT_CSV_COLUMNS = ['order', 'key', 'summary', 'status', 'final_value', 'rounds',
+                       'average', 'agreement', 'voter_count', 'deck', 'park_reason']
+
+
+def _export_slug(name: str) -> str:
+    """Filename-safe slug from a session name for the CSV download (ASCII, dashed)."""
+    slug = re.sub(r'[^a-z0-9]+', '-', (name or '').lower()).strip('-')
+    return slug or 'session'
+
+
+@app.route('/sessions/<string:game_uuid>/export.json')
+def export_session_json(game_uuid):
+    # Full per-issue results of one saved session as JSON (v2 export). Declared beside
+    # /sessions; the literal `export.json` suffix ranks this static rule ahead of the
+    # `<path:path>` catch-all, so the SPA never swallows it. 404 on an unknown uuid.
+    data = gm.export_session(game_uuid)
+    if data is None:
+        return '', 404
+    return jsonify(data)
+
+
+@app.route('/sessions/<string:game_uuid>/export.csv')
+def export_session_csv(game_uuid):
+    # Same export as a spreadsheet-friendly CSV: a header row plus one row per issue.
+    # The Content-Disposition filename is the sanitised session name. A backlog-less
+    # ("classic") game exports just the header — never crashes.
+    data = gm.export_session(game_uuid)
+    if data is None:
+        return '', 404
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(_EXPORT_CSV_COLUMNS)
+    for issue in data['issues']:
+        writer.writerow([
+            issue['orderIndex'], issue['key'], issue['summary'], issue['status'],
+            issue['finalValue'], issue['rounds'], issue['average'], issue['agreement'],
+            issue['voterCount'], issue['deck'], issue['parkReason'],
+        ])
+    filename = f'{_export_slug(data["name"])}-poker.csv'
+    return Response(buf.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': f'attachment; filename="{filename}"'})
 
 
 @app.route('/<string:file>.<string:ext>')

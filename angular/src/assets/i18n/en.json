@@ -18,7 +18,9 @@
       "cancel": "{{buttons.cancel}}"
     },
     "gameName": {
-      "copy-toast": "Game's link copied to clipboard"
+      "copy-toast": "Game's link copied to clipboard",
+      "exportCsv": "Export session as CSV",
+      "exportJson": "Export session as JSON"
     },
     "qrCodeModal": {
       "title": "Scan to join"
@@ -144,7 +146,13 @@
     "title": "Saved sessions",
     "empty": "No saved sessions yet.",
     "estimated": "{{done}} / {{total}} estimated",
-    "open": "Open session {{name}}"
+    "open": "Open session {{name}}",
+    "export": {
+      "csv": "CSV",
+      "json": "JSON",
+      "csv-aria": "Download {{name}} results as CSV",
+      "json-aria": "Download {{name}} results as JSON"
+    }
   },
   "issueResolved": {
     "estimated-label": "Estimated",

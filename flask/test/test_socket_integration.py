@@ -262,6 +262,61 @@ class SocketIntegrationTestCase(unittest.TestCase):
         self.assertEqual(legacy['total'], 0)
         self.assertEqual(legacy['estimated'], 0)
 
+    # --- v2: session export endpoints (CSV / JSON) ---
+
+    def _seed_estimated_game(self, card=5, value=5):
+        """A 2-issue game with OPS-1 estimated at `value` (both players voted `card`)."""
+        game_id = self._new_backlog_game()                 # OPS-1, OPS-2 (FIBONACCI)
+        driver, _ = self._join(game_id, 'Ann')
+        guest, _ = self._join(game_id, 'Bob')
+        driver.emit('select_issue', {'index': 0})
+        driver.emit('pick_card', {'card': card}); guest.emit('pick_card', {'card': card})
+        driver.get_received(); guest.get_received()
+        driver.emit('reveal_cards')
+        driver.emit('accept_estimate', {'value': value})   # OPS-1 → estimated
+        return game_id
+
+    def test_export_json_endpoint_returns_full_session(self):
+        game_id = self._seed_estimated_game(card=5, value=8)
+        resp = self.app.test_client().get(f'/sessions/{game_id}/export.json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.mimetype.startswith('application/json'))
+        data = resp.get_json()
+        self.assertEqual(data['uuid'], game_id)
+        self.assertEqual(data['name'], 'Sprint')
+        self.assertEqual(data['deck'], 'FIBONACCI')
+        self.assertEqual(data['total'], 2)
+        self.assertEqual(data['estimated'], 1)
+        self.assertEqual(data['pointsTotal'], 8.0)          # only OPS-1 accepted so far
+        by_key = {i['key']: i for i in data['issues']}
+        self.assertEqual(by_key['OPS-1']['finalValue'], 8.0)
+        self.assertEqual(by_key['OPS-1']['voterCount'], 2)
+        self.assertIsNone(by_key['OPS-2']['finalValue'])    # not yet estimated
+
+    def test_export_csv_endpoint_has_attachment_header_and_rows(self):
+        game_id = self._seed_estimated_game(card=5, value=5)
+        resp = self.app.test_client().get(f'/sessions/{game_id}/export.csv')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.mimetype.startswith('text/csv'))
+        disposition = resp.headers.get('Content-Disposition', '')
+        self.assertIn('attachment', disposition)
+        self.assertIn('sprint-poker.csv', disposition)      # slug from the session name
+        lines = [l for l in resp.get_data(as_text=True).splitlines() if l]
+        self.assertEqual(lines[0], 'order,key,summary,status,final_value,rounds,'
+                                   'average,agreement,voter_count,deck,park_reason')
+        ops1 = next(l for l in lines if l.startswith('0,OPS-1,'))
+        cells = ops1.split(',')
+        self.assertEqual(cells[3], 'estimated')             # status
+        self.assertEqual(cells[4], '5.0')                   # final_value
+        self.assertEqual(cells[8], '2')                     # voter_count
+        self.assertEqual(cells[9], 'FIBONACCI')             # deck
+
+    def test_export_endpoints_unknown_uuid_return_404(self):
+        bogus = str(__import__('uuid').uuid4())
+        client = self.app.test_client()
+        self.assertEqual(client.get(f'/sessions/{bogus}/export.json').status_code, 404)
+        self.assertEqual(client.get(f'/sessions/{bogus}/export.csv').status_code, 404)
+
 
 if __name__ == '__main__':
     unittest.main()
