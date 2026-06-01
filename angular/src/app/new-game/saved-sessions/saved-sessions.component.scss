@@ -81,6 +81,33 @@
   color: var(--brand-emerald-400);
 }
 
+// CSV / JSON download links on the meta line. Muted by default, emerald on hover —
+// quiet ops actions that sit beside the progress count without competing with it.
+.saved-sessions__export {
+  display: inline-flex;
+  gap: 0.6rem;
+  flex: 0 0 auto;
+}
+
+.saved-sessions__export-link {
+  color: var(--brand-text-secondary);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color var(--brand-motion-fast, 120ms) var(--brand-motion-ease, ease-out);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--brand-emerald-400);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-emerald-500);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
 .saved-sessions__empty {
   margin: 0;
   padding: 0.75rem;

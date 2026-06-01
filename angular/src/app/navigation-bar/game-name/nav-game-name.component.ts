@@ -8,6 +8,7 @@ import { TranslocoDirective, TranslocoService } from '@ngneat/transloco';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { NgIf } from '@angular/common';
 import { QrCodeModalContentComponent } from "./qr-code-modal-content/qr-code-modal-content.component";
+import { SessionExportService } from '../../shared/session-export.service';
 
 @Component({
     selector: 'shpp-game-name',
@@ -24,13 +25,27 @@ export class NavGameNameComponent implements OnDestroy {
               private toastService:  ToastService,
               private clipboard: Clipboard,
               private modalService: NgbModal,
-              private transloco: TranslocoService) {
+              private transloco: TranslocoService,
+              private exportService: SessionExportService) {
     this.gameInfoSubscription = this.currentGameService.gameInfo$
     .subscribe((gameInfo) => this.currentGameInfo = gameInfo);
   }
 
   ngOnDestroy(): void {
     this.gameInfoSubscription.unsubscribe();
+  }
+
+  /** Download URL for this session's CSV export, or null before the game id is known.
+   *  A string getter (not a fresh object) so it stays value-stable across change
+   *  detection — `*ngIf="...as url"` then never trips ExpressionChangedAfterChecked. */
+  get exportCsvUrl(): string | null {
+    const id = this.currentGameService.gameId;
+    return id ? this.exportService.csvUrl(id) : null;
+  }
+
+  get exportJsonUrl(): string | null {
+    const id = this.currentGameService.gameId;
+    return id ? this.exportService.jsonUrl(id) : null;
   }
 
   copyLink(): void {

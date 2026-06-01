@@ -10,7 +10,7 @@ from gamestate.game import Game
 from gamestate.intake import parse_issues
 from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
-from gamestate.stats import compute_stats
+from gamestate.stats import compute_stats, is_numeric_deck
 
 
 class GameManager:
@@ -78,6 +78,64 @@ class GameManager:
                 'createdAt': g.created_at.isoformat() if g.created_at else None,
             })
         return sessions
+
+    def export_session(self, game_uuid: str) -> Optional[dict]:
+        """Full per-issue results of one session for CSV/JSON export.
+
+        Returns None when the game is unknown (the route turns that into a 404).
+        Read-only over the persisted tables (StoredGame -> Issues -> append-only
+        EstimationResult), independent of whether the game is cached in memory.
+
+        Per issue, `finalValue` is the `final_value` of the **latest round that has
+        one** — accepted rounds set it, revote rounds leave it null — so a re-opened
+        issue reports its last accepted estimate, never a double-count. `average` /
+        `agreement` / `voterCount` come from that same deciding round. `pointsTotal`
+        is the sum of those per-issue final values (one per issue, so re-opens never
+        inflate it), exposed only for numeric decks — this is the latest-final-value-
+        per-issue total that `list_sessions` deliberately defers to here.
+        """
+        stored = StoredGame.get_or_none(StoredGame.uuid == game_uuid)
+        if stored is None:
+            return None
+        numeric = stored.deck in Deck.__members__ and is_numeric_deck(Deck[stored.deck])
+        issues_out = []
+        estimated = 0
+        points_total = 0.0
+        has_points = False
+        for issue in stored.issues.order_by(Issue.order_index):
+            rows = list(issue.results.order_by(EstimationResult.round_number))
+            accepted = [r for r in rows if r.final_value is not None]
+            final_row = accepted[-1] if accepted else None   # latest decided round
+            deciding = final_row or (rows[-1] if rows else None)   # else latest round, for its stats
+            final_value = final_row.final_value if final_row else None
+            if issue.status == 'estimated':
+                estimated += 1
+            if numeric and final_value is not None:
+                points_total += final_value
+                has_points = True
+            issues_out.append({
+                'orderIndex': issue.order_index,
+                'key': issue.jira_key,
+                'summary': issue.summary,
+                'status': issue.status,
+                'parkReason': issue.park_reason,
+                'finalValue': final_value,
+                'rounds': len(rows),
+                'average': deciding.average if deciding else None,
+                'agreement': deciding.agreement if deciding else None,
+                'voterCount': deciding.voter_count if deciding else None,
+                'deck': deciding.deck_at_vote if deciding else stored.deck,
+            })
+        return {
+            'uuid': str(stored.uuid),
+            'name': stored.name,
+            'deck': stored.deck,
+            'createdAt': stored.created_at.isoformat() if stored.created_at else None,
+            'total': len(issues_out),
+            'estimated': estimated,
+            'pointsTotal': round(points_total, 2) if (numeric and has_points) else None,
+            'issues': issues_out,
+        }
 
     def get(self, game_uuid: str) -> Game:
         game = self.games.get(game_uuid)

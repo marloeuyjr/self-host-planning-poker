@@ -27,6 +27,7 @@ export class CurrentGameService {
   private newGameSubject = new Subject<void>();
   private backlogSubject = new BehaviorSubject<BacklogState | null>(null);
   private resultsSubject = new BehaviorSubject<RoundResults | null>(null);
+  private currentGameId: string | null = null;
 
   constructor(private router: Router,
               private userInformation: UserInformationService,
@@ -94,6 +95,13 @@ export class CurrentGameService {
     return this.infoSubject.asObservable();
   }
 
+  /** The uuid of the game currently joined, or null when not in a game. Captured on
+   *  join so the nav can build the session-export download URLs (the route param is
+   *  the authoritative id; GameInfo deliberately doesn't carry it). */
+  public get gameId(): string | null {
+    return this.currentGameId;
+  }
+
   public get newGame$(): Observable<void>{
     return this.newGameSubject.asObservable();
   }
@@ -143,6 +151,7 @@ export class CurrentGameService {
 
   canActivate(route: ActivatedRouteSnapshot): Promise<boolean | UrlTree> {
     const gameId = route.params['gameId'];
+    this.currentGameId = gameId;
     return this.socket.connect()
     .emitWithAck('join', {
       game: gameId,
@@ -176,6 +185,7 @@ export class CurrentGameService {
     this.infoSubject.next(null);
     this.backlogSubject.next(null);
     this.resultsSubject.next(null);
+    this.currentGameId = null;
   }
 
   public selectIssue(index: number): void {

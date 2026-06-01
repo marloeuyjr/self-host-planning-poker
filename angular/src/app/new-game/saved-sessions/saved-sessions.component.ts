@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { TranslocoDirective } from '@ngneat/transloco';
 import { environment } from '../../../environments/environment';
 import { SavedSession } from '../../model/events';
+import { SessionExportService } from '../../shared/session-export.service';
 
 /**
  * Home-page recall list (B2): the most-recent saved sessions, newest-first, each a
@@ -26,7 +27,8 @@ export class SavedSessionsComponent implements OnInit {
 
   constructor(private http: HttpClient,
               private pls: PathLocationStrategy,
-              private router: Router) { }
+              private router: Router,
+              public exportService: SessionExportService) { }
 
   ngOnInit(): void {
     const url = `${ environment.backendRootOverride ?? this.pls.getBaseHref() }sessions`;

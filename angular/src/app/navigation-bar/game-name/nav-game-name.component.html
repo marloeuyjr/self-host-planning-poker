@@ -24,6 +24,28 @@
           <use xlink:href="assets/bootstrap-icons.svg#qr-code-scan"/>
         </svg>
       </button>
+      <a class="btn btn-outline-light btn-sm"
+         *ngIf="exportCsvUrl as csvUrl"
+         [href]="csvUrl" download
+         [attr.aria-label]="t('gameName.exportCsv')"
+         [ngbTooltip]="t('gameName.exportCsv')"
+         placement="bottom"
+      >
+        <svg class="bi bi-filetype-csv" width="1.2em" height="1.2em" fill="currentColor" aria-hidden="true">
+          <use xlink:href="assets/bootstrap-icons.svg#filetype-csv"/>
+        </svg>
+      </a>
+      <a class="btn btn-outline-light btn-sm"
+         *ngIf="exportJsonUrl as jsonUrl"
+         [href]="jsonUrl" download
+         [attr.aria-label]="t('gameName.exportJson')"
+         [ngbTooltip]="t('gameName.exportJson')"
+         placement="bottom"
+      >
+        <svg class="bi bi-filetype-json" width="1.2em" height="1.2em" fill="currentColor" aria-hidden="true">
+          <use xlink:href="assets/bootstrap-icons.svg#filetype-json"/>
+        </svg>
+      </a>
     </div>
   </ng-container>
 </ng-container>

@@ -23,6 +23,13 @@ ABSTAIN = '?'
 _NUMERIC_DECKS = (Deck.FIBONACCI, Deck.MODIFIED_FIBONACCI, Deck.POWERS)
 
 
+def is_numeric_deck(deck: Deck) -> bool:
+    """True for decks where a mean / median / points-total is meaningful (story
+    points). Ordinal decks (T_SHIRTS, TRUST_VOTE) report distribution only — and
+    summing their mapped ordinals into a 'total' would be nonsense."""
+    return deck in _NUMERIC_DECKS
+
+
 def compute_stats(votes, deck: Deck) -> dict:
     """Summarise one round of votes.
 
@@ -30,7 +37,7 @@ def compute_stats(votes, deck: Deck) -> dict:
     card — each an int in `deck.value`, or `ABSTAIN`. Players who have not picked
     are excluded by the caller. `deck` is the active deck.
     """
-    numeric_deck = deck in _NUMERIC_DECKS
+    numeric_deck = is_numeric_deck(deck)
 
     abstains = sum(1 for v in votes if v == ABSTAIN)
     cast = [v for v in votes if v != ABSTAIN]
