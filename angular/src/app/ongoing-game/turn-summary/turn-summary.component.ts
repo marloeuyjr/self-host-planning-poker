@@ -151,6 +151,18 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
       (c): c is { value: number; display: number | string } => typeof c.value === 'number');
   }
 
+  trackByKey(_: number, item: { key: string }): string {
+    return item.key;
+  }
+
+  trackByValue(_: number, card: { value: number }): number {
+    return card.value;
+  }
+
+  trackByRound(_: number, round: EstimationResultView): number {
+    return round.round;
+  }
+
   setFinalValue(value: number): void {
     this.finalValueInput = value;
   }

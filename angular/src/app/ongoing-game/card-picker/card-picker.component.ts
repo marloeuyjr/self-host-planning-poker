@@ -5,12 +5,13 @@ import { CurrentGameService } from '../current-game.service';
 import { UserInformationService } from '../../shared/user-info/user-information.service';
 import { PickableCardComponent } from './card/pickable-card.component';
 import { NgIf, NgFor } from '@angular/common';
+import { TranslocoDirective } from '@ngneat/transloco';
 
 @Component({
     selector: 'shpp-card-picker',
     templateUrl: './card-picker.component.html',
     standalone: true,
-    imports: [NgIf, NgFor, PickableCardComponent]
+    imports: [NgIf, NgFor, PickableCardComponent, TranslocoDirective]
 })
 export class CardPickerComponent implements OnDestroy {
   deck?: Deck
@@ -88,6 +89,7 @@ export class CardPickerComponent implements OnDestroy {
     this.deckSubscription.unsubscribe();
     this.newGameSubscription.unsubscribe();
     this.spectatorSubscription.unsubscribe();
+    this.gameRevealedSubscription.unsubscribe();
   }
 
 }

@@ -7,7 +7,6 @@ import { Clipboard } from '@angular/cdk/clipboard';
 import { TranslocoDirective, TranslocoService } from '@ngneat/transloco';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { NgIf } from '@angular/common';
-import { QrCodeModalContentComponent } from "./qr-code-modal-content/qr-code-modal-content.component";
 import { SessionExportService } from '../../shared/session-export.service';
 
 @Component({
@@ -55,7 +54,12 @@ export class NavGameNameComponent implements OnDestroy {
     )
   }
 
-  displayQrCode(): void {
+  /** Open the QR modal. The component and its (~CommonJS) `qrcode` dependency are
+   *  dynamically imported so they split into an on-demand chunk rather than weighing
+   *  down the main game bundle — most sessions never open the QR. */
+  async displayQrCode(): Promise<void> {
+    const { QrCodeModalContentComponent } =
+      await import('./qr-code-modal-content/qr-code-modal-content.component');
     const modalRef = this.modalService.open(QrCodeModalContentComponent);
     modalRef.componentInstance.url = this.getUrl();
   }

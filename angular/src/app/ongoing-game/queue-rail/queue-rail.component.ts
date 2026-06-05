@@ -72,6 +72,13 @@ export class QueueRailComponent implements OnDestroy {
     return total ? this.estimatedCount(backlog) / total * 100 : 0;
   }
 
+  /** Every non-parked issue has been estimated — the session's work is done, so the
+   *  loop doesn't just quietly run out of issues. */
+  isComplete(backlog: BacklogState): boolean {
+    const total = this.toEstimateCount(backlog);
+    return total > 0 && this.estimatedCount(backlog) === total;
+  }
+
   /** The accepted estimate to show on a Done issue, mapped to the deck it was
    *  voted on (so a T-shirt size shows "M", not its ordinal). Null if none. */
   acceptedValue(backlog: BacklogState, issue: Issue): string | null {

@@ -5,7 +5,7 @@
     <p class="saved-sessions__empty" *ngIf="sessions.length === 0">{{ t('empty') }}</p>
 
     <ol class="saved-sessions__list" *ngIf="sessions.length > 0">
-      <li class="saved-sessions__item" *ngFor="let session of sessions"
+      <li class="saved-sessions__item" *ngFor="let session of sessions; trackBy: trackByUuid"
           tabindex="0" role="link"
           [attr.aria-label]="t('open', { name: session.name })"
           (click)="open(session)" (keydown.enter)="open(session)">

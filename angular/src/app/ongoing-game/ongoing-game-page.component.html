@@ -8,6 +8,12 @@
   </ng-container>
 
   <ng-container content>
+    <div class="offline-banner" role="status" *ngIf="(connected$ | async) === false">
+      <span class="offline-banner__dot" aria-hidden="true"></span>
+      <ng-container *transloco="let t">{{ t('ongoingGame.offline') }}</ng-container>
+    </div>
+    <h1 class="visually-hidden">{{ gameName }}</h1>
+    <p class="visually-hidden" aria-live="polite" role="status">{{ announcement }}</p>
     <shpp-current-issue />
     <div class="game-body">
       <shpp-queue-rail />

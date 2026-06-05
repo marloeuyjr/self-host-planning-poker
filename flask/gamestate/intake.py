@@ -19,17 +19,32 @@ from gamestate.exceptions import InvalidBacklogError
 # everything after the first run of whitespace.
 _PASTE_SPLIT = re.compile(r'\s+')
 
+# Guardrails on a single import. The real workflow is ~15–40 issues (E6); these caps
+# only exist so a pathological paste can't insert unbounded rows (which then bloat
+# every full-snapshot backlog broadcast) or wedge the single eventlet worker on parse.
+_MAX_INPUT_CHARS = 100_000
+_MAX_ISSUES = 500
+
 
 def parse_issues(text, fmt='paste') -> list:
     """Parse `text` into an ordered, de-duped list of issue dicts.
 
     Each dict has `jira_key`, `summary`, and (CSV only) optional `url` / `description`.
-    Raises `InvalidBacklogError` naming the offending line rather than dropping it.
+    Raises `InvalidBacklogError` naming the offending line rather than dropping it, or
+    when the import exceeds the size / count guardrails.
     """
     text = (text or '').strip()
     if not text:
         return []
+    if len(text) > _MAX_INPUT_CHARS:
+        raise InvalidBacklogError(
+            f'Backlog is too large ({len(text)} characters; limit {_MAX_INPUT_CHARS}). '
+            f'Paste it in smaller batches.')
     rows = _parse_csv(text) if fmt == 'csv' else _parse_paste(text)
+    if len(rows) > _MAX_ISSUES:
+        raise InvalidBacklogError(
+            f'Too many issues ({len(rows)}; limit {_MAX_ISSUES}). '
+            f'Split the backlog into smaller sessions.')
     return _dedupe(rows)
 
 

@@ -317,6 +317,32 @@ class SocketIntegrationTestCase(unittest.TestCase):
         self.assertEqual(client.get(f'/sessions/{bogus}/export.json').status_code, 404)
         self.assertEqual(client.get(f'/sessions/{bogus}/export.csv').status_code, 404)
 
+    # --- v2.3: hardened /create + baseline security/cache headers ---
+
+    def test_create_rejects_a_malformed_body_with_400(self):
+        client = self.app.test_client()
+        # Missing deck, missing name, and a non-JSON body all 400 instead of 500ing
+        # on a KeyError / None dereference.
+        self.assertEqual(client.post('/create', json={'name': 'X'}).status_code, 400)
+        self.assertEqual(client.post('/create', json={'deck': 'FIBONACCI'}).status_code, 400)
+        self.assertEqual(client.post('/create', data='not json',
+                                     content_type='text/plain').status_code, 400)
+
+    def test_create_accepts_a_valid_body(self):
+        resp = self.app.test_client().post('/create', json={'name': 'Sprint', 'deck': 'FIBONACCI'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_data(as_text=True))   # returns the new game uuid
+
+    def test_security_and_cache_headers_present(self):
+        resp = self.app.test_client().get('/sessions')
+        self.assertEqual(resp.headers.get('X-Content-Type-Options'), 'nosniff')
+        self.assertEqual(resp.headers.get('X-Frame-Options'), 'DENY')
+        csp = resp.headers.get('Content-Security-Policy', '')
+        self.assertIn("frame-ancestors 'none'", csp)
+        self.assertIn("script-src 'self'", csp)
+        # The JSON API must revalidate, not be cached as static.
+        self.assertEqual(resp.headers.get('Cache-Control'), 'no-cache')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,6 +10,38 @@
   border-top: 1px solid var(--brand-hairline);
 }
 
+// Persistent offline banner — shown only while the socket is reconnecting. A calm
+// danger-tinted bar with a slow pulsing dot; no gradient, no shadow.
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(248, 113, 113, 0.12);
+  border-bottom: 1px solid var(--brand-hairline);
+  color: var(--brand-text-primary);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+}
+
+.offline-banner__dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--bs-danger, #F87171);
+  animation: offline-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes offline-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offline-banner__dot { animation: none; }
+}
+
 shpp-turn-summary,
 shpp-card-picker {
   min-height: 250px;

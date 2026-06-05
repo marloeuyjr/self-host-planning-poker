@@ -1,12 +1,13 @@
 import { Component, HostListener, OnDestroy, ViewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { TranslocoService } from '@ngneat/transloco';
-import { Subscription, switchMap } from 'rxjs';
+import { TranslocoDirective, TranslocoService } from '@ngneat/transloco';
+import { Observable, Subscription, switchMap } from 'rxjs';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { CurrentGameService } from './current-game.service';
+import { ToastService } from '../shared/toast/toast.service';
 import { CardPickerComponent } from './card-picker/card-picker.component';
 import { TurnSummaryComponent } from './turn-summary/turn-summary.component';
-import { NgIf } from '@angular/common';
+import { AsyncPipe, NgIf } from '@angular/common';
 import { CardTableComponent } from './card-table/card-table.component';
 import { NavPlayerInfoComponent } from '../navigation-bar/player-info/nav-player-info.component';
 import { NavGameInfoComponent } from '../navigation-bar/game-info/nav-game-info.component';
@@ -33,13 +34,19 @@ import { KeyboardHelpModalComponent } from './keyboard-help/keyboard-help-modal.
       CardPickerComponent,
       CurrentIssueComponent,
       QueueRailComponent,
-      IssueResolvedComponent
+      IssueResolvedComponent,
+      AsyncPipe,
+      TranslocoDirective
     ]
 })
 export default class OngoingGamePageComponent implements OnDestroy {
   private subscriptions: Subscription[] = [];
 
   showSummary = false;
+  gameName = '';
+  // Screen-reader announcement for the reveal — the *ngIf swap from picker to summary
+  // is otherwise silent. Pushed into a visually-hidden aria-live region (WCAG 4.1.3).
+  announcement = '';
   private isBacklogGame = false;
   private currentStatus: string | null = null;
 
@@ -55,18 +62,38 @@ export default class OngoingGamePageComponent implements OnDestroy {
   private currentIndex: number | null = null;
   private issuesLength = 0;
   private isDriver = false;
+  // Tracks the local player's prior driver status so a handoff can be announced
+  // (null until the first value, so joining as driver is not announced as a change).
+  private wasDriver: boolean | null = null;
 
   private helpRef?: NgbModalRef;
+
+  /** Live socket connectivity for the offline banner. */
+  get connected$(): Observable<boolean> {
+    return this.currentGameService.connected$;
+  }
 
   constructor(private currentGameService: CurrentGameService,
               private titleService: Title,
               private transloco: TranslocoService,
+              private toastService: ToastService,
               private modalService: NgbModal) {
     this.subscriptions.push(this.currentGameService.gameInfo$
       .pipe(
         switchMap((gameInfo) => this.transloco.selectTranslate('ongoingGame.page-title', { gameName: gameInfo?.name })))
       .subscribe((translatedPageTitle) => this.titleService.setTitle(translatedPageTitle)));
     this.subscriptions.push(this.currentGameService.revealed$.subscribe((revealed) => this.showSummary = revealed));
+    this.subscriptions.push(this.currentGameService.gameInfo$.subscribe((info) => this.gameName = info?.name ?? ''));
+    this.subscriptions.push(this.currentGameService.results$.subscribe((results) => {
+      if (!results) {
+        this.announcement = '';
+        return;
+      }
+      const pct = results.agreement != null ? Math.round(results.agreement * 100) : null;
+      this.announcement = pct != null
+        ? this.transloco.translate('ongoingGame.announce-revealed-agreement', { agreement: pct })
+        : this.transloco.translate('ongoingGame.announce-revealed');
+    }));
     this.subscriptions.push(this.currentGameService.hasBacklog$.subscribe((has) => this.isBacklogGame = has));
     this.subscriptions.push(this.currentGameService.currentIssue$
       .subscribe((issue) => this.currentStatus = issue ? issue.status : null));
@@ -74,7 +101,16 @@ export default class OngoingGamePageComponent implements OnDestroy {
       this.currentIndex = backlog ? backlog.currentIndex : null;
       this.issuesLength = backlog ? backlog.issues.length : 0;
     }));
-    this.subscriptions.push(this.currentGameService.isDriver$.subscribe((isDriver) => this.isDriver = isDriver));
+    this.subscriptions.push(this.currentGameService.isDriver$.subscribe((isDriver) => {
+      // Announce a handoff that changes the local player's control, so a silent
+      // "Take control" elsewhere doesn't surprise the previous driver.
+      if (this.wasDriver !== null && isDriver !== this.wasDriver) {
+        const key = isDriver ? 'ongoingGame.you-are-driver' : 'ongoingGame.driver-changed';
+        this.toastService.show(this.transloco.translate(key), { className: 'bg-info' });
+      }
+      this.wasDriver = isDriver;
+      this.isDriver = isDriver;
+    }));
   }
 
   @HostListener('document:keydown', ['$event'])

@@ -52,6 +52,8 @@
 }
 
 .saved-sessions__name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 600;
   color: var(--brand-text-primary);
   white-space: nowrap;
@@ -59,7 +61,10 @@
   text-overflow: ellipsis;
 }
 
-.saved-sessions__deck {
+// Deck-name chip — monospace, uppercase, tracked: operational metadata, not body copy.
+// (Class renamed from .saved-sessions__deck to match the template, which never emitted
+// that name, so the chip had been rendering in the default proportional sans.)
+.saved-sessions__chip {
   flex: 0 0 auto;
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -77,7 +82,8 @@
   font-family: var(--bs-font-monospace, monospace);
 }
 
-.saved-sessions__progress {
+// Estimated-count tally (renamed from .saved-sessions__progress to match the template).
+.saved-sessions__count {
   color: var(--brand-emerald-400);
 }
 

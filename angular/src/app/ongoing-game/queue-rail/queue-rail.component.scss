@@ -52,6 +52,19 @@
   white-space: nowrap;
 }
 
+// Session-complete marker — every non-parked issue estimated.
+.queue-rail__complete {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--brand-emerald-300);
+
+  span {
+    font-family: var(--bs-font-monospace, monospace);
+  }
+}
+
 // Thin X-of-N progress bar — the only adornment.
 .queue-rail__bar {
   margin-top: 0.5rem;

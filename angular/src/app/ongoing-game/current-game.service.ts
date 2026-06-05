@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
-import { BehaviorSubject, combineLatest, filter, map, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, combineLatest, filter, map, Observable, Subject, take } from 'rxjs';
 import { BacklogState, ErrorMessage, GameInfo, GameState, Issue, RoundResults } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
 import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
@@ -27,6 +27,11 @@ export class CurrentGameService {
   private newGameSubject = new Subject<void>();
   private backlogSubject = new BehaviorSubject<BacklogState | null>(null);
   private resultsSubject = new BehaviorSubject<RoundResults | null>(null);
+  // Live socket connectivity, surfaced so the page can show a persistent offline
+  // banner while reconnection runs (the disconnect toast alone auto-hides in 5s but
+  // reconnection takes up to ~50s). Seeded true: the route guard only loads the page
+  // after a successful join, so the socket is already connected by first render.
+  private connectedSubject = new BehaviorSubject<boolean>(true);
   private currentGameId: string | null = null;
 
   constructor(private router: Router,
@@ -56,8 +61,10 @@ export class CurrentGameService {
     this.socket.on('backlog', (backlog: BacklogState) => this.backlogSubject.next(backlog));
     this.socket.on('results', (results: RoundResults) => this.resultsSubject.next(results));
 
+    this.socket.on('connect', () => this.connectedSubject.next(true));
     this.socket.on('disconnect', (reason) => {
       if (reason !== 'io client disconnect') {
+        this.connectedSubject.next(false);
         this.error('errors.disconnect', {reason: reason, delay: this.reconnectDelaySeconds});
       }
       console.info(`Socket disconnected. Reason is "${reason}"`);
@@ -72,6 +79,7 @@ export class CurrentGameService {
       this.error('reconnect.failed', { attempts: this.totalAttempts });
     });
     this.manager.on('reconnect', (attempt: number) => {
+      this.connectedSubject.next(true);
       this.success('reconnect.success', { attempts: attempt });
     });
 
@@ -93,6 +101,16 @@ export class CurrentGameService {
 
   public get gameInfo$(): Observable<GameInfo | null> {
     return this.infoSubject.asObservable();
+  }
+
+  /** Live socket connectivity — false while a reconnection is in progress. */
+  public get connected$(): Observable<boolean> {
+    return this.connectedSubject.asObservable();
+  }
+
+  /** The current session driver's id (the soft host), or null. */
+  public get driverId$(): Observable<string | null> {
+    return this.infoSubject.asObservable().pipe(map((info) => info?.driverId ?? null));
   }
 
   /** The uuid of the game currently joined, or null when not in a game. Captured on
@@ -272,22 +290,24 @@ export class CurrentGameService {
     }
   }
 
+  // selectTranslate re-emits on every language change; these are fire-and-forget
+  // toasts, so take(1) completes the subscription instead of leaking one per toast.
   private info(key: string, translateParams?: HashMap): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
+    this.transloco.selectTranslate(key, translateParams).pipe(take(1)).subscribe((text) => {
       console.info(text);
       this.toastService.show(text, { className: 'bg-info' });
     })
   }
 
   private success(key: string, translateParams?: HashMap): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
+    this.transloco.selectTranslate(key, translateParams).pipe(take(1)).subscribe((text) => {
       console.info(text);
       this.toastService.show(text, { className: 'bg-success text-light' });
     });
   }
 
   private error(key: string, translateParams?: HashMap): void {
-    this.transloco.selectTranslate(key, translateParams).subscribe((text) => {
+    this.transloco.selectTranslate(key, translateParams).pipe(take(1)).subscribe((text) => {
       console.error(text);
       this.toastService.show(text, { className: 'bg-danger text-light' });
     })

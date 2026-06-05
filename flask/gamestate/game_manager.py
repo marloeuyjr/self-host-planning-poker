@@ -233,11 +233,15 @@ class GameManager:
         stats = compute_stats(game.get_cast_votes(), game.get_deck())
         if final_value is None:
             final_value = stats['mode'][0] if len(stats['mode']) == 1 else None
-        self.__write_round(game, issue, stats, final_value)
-        game.mark_current('estimated')
-        Issue.update(status='estimated').where(Issue.id == issue['id']).execute()
-        for changed in game.advance_to_next_pending():
-            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        # One transaction so the appended round row and the issue-status flips commit
+        # together — a crash mid-accept can't leave a recorded round without its
+        # 'estimated' status (or the advance half-applied).
+        with database_proxy.atomic():
+            self.__write_round(game, issue, stats, final_value)
+            game.mark_current('estimated')
+            Issue.update(status='estimated').where(Issue.id == issue['id']).execute()
+            for changed in game.advance_to_next_pending():
+                Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
         return game.backlog(), game.state(), game.info()
 
     def revote(self, game_uuid: str) -> tuple[dict, dict, dict]:
@@ -321,10 +325,12 @@ class GameManager:
             raise NoCurrentIssueError('No issue is currently selected')
         if status not in ('refinement', 'skipped'):
             status = 'refinement'
-        game.park_current(status, reason)
-        Issue.update(status=status, park_reason=reason).where(Issue.id == issue['id']).execute()
-        for changed in game.advance_to_next_pending():
-            Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
+        # Park + advance commit together (see accept_estimate).
+        with database_proxy.atomic():
+            game.park_current(status, reason)
+            Issue.update(status=status, park_reason=reason).where(Issue.id == issue['id']).execute()
+            for changed in game.advance_to_next_pending():
+                Issue.update(status=changed['status']).where(Issue.id == changed['id']).execute()
         return game.backlog(), game.state(), game.info()
 
     def add_issues(self, game_uuid: str, text: str, fmt='paste') -> dict:

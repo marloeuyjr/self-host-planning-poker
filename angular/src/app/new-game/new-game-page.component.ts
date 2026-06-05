@@ -10,6 +10,7 @@ import { FooterComponent } from '../shared/footer/footer.component';
 import { PathLocationStrategy } from '@angular/common';
 import { ToastService } from '../shared/toast/toast.service';
 import { SavedSessionsComponent } from './saved-sessions/saved-sessions.component';
+import { TranslocoDirective } from '@ngneat/transloco';
 
 @Component({
   standalone: true,
@@ -21,7 +22,8 @@ import { SavedSessionsComponent } from './saved-sessions/saved-sessions.componen
     ContainerComponent,
     NavAppTitleComponent,
     FooterComponent,
-    SavedSessionsComponent
+    SavedSessionsComponent,
+    TranslocoDirective
   ]
 })
 export default class NewGamePageComponent {

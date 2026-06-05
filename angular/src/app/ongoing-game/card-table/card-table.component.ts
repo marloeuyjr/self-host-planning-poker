@@ -22,12 +22,14 @@ export class CardTableComponent implements OnDestroy {
   // so the classic "New turn" button is hidden (S5).
   isBacklogGame = false;
   isDriver = true;   // soft host gate — only the driver reveals / advances (S8)
+  driverId: string | null = null;   // which player holds the role (for the table badge)
 
   private stateSubscription: Subscription;
   private revealedSubscription: Subscription;
   private deckSubscription: Subscription;
   private backlogSubscription: Subscription;
   private driverSubscription: Subscription;
+  private driverIdSubscription: Subscription;
 
   constructor(private currentGameService: CurrentGameService) {
     this.stateSubscription = this.currentGameService.state$
@@ -46,6 +48,9 @@ export class CardTableComponent implements OnDestroy {
 
     this.driverSubscription = currentGameService.isDriver$
     .subscribe((isDriver: boolean) => this.isDriver = isDriver);
+
+    this.driverIdSubscription = currentGameService.driverId$
+    .subscribe((driverId: string | null) => this.driverId = driverId);
   }
 
   revealCards(): void {
@@ -66,6 +71,7 @@ export class CardTableComponent implements OnDestroy {
     this.deckSubscription.unsubscribe();
     this.backlogSubscription.unsubscribe();
     this.driverSubscription.unsubscribe();
+    this.driverIdSubscription.unsubscribe();
   }
 
   getId(item: any): string {
