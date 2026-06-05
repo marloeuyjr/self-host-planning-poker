@@ -1,27 +1,27 @@
 <ng-container *transloco="let t; read 'gameForm'">
   <form [formGroup]="formGroup">
     <div class="mb-3">
-      <label [for]="nameInput" class="form-label">{{ t('name-label') }}</label>
-      <input type="text" class="form-control" formControlName="name" [placeholder]="t('name-placeholder')" #nameInput>
+      <label for="gameName" class="form-label">{{ t('name-label') }}</label>
+      <input id="gameName" type="text" class="form-control" formControlName="name" [placeholder]="t('name-placeholder')">
     </div>
     <div class="mb-3">
-      <label [for]="deckSelect" class="form-label">{{ t('deck-label') }}</label>
-      <select class="form-select" formControlName="deck" #deckSelect>
+      <label for="gameDeck" class="form-label">{{ t('deck-label') }}</label>
+      <select id="gameDeck" class="form-select" formControlName="deck">
         <ng-container *transloco="let n; read 'deckNames'">
           <option *ngFor="let deck of decks" [ngValue]="deck">{{ n(deck.name) }} ({{ displayDeckValues(deck) }})</option>
         </ng-container>
       </select>
     </div>
     <div class="mb-3" *ngIf="isNewGame()">
-      <label [for]="backlogInput" class="form-label">{{ t('backlog-label') }}</label>
-      <div class="btn-group btn-group-sm mb-2 d-flex" role="group">
+      <label for="gameBacklog" class="form-label">{{ t('backlog-label') }}</label>
+      <div class="btn-group btn-group-sm mb-2 d-flex" role="group" [attr.aria-label]="t('backlog-label')">
         <input type="radio" class="btn-check" formControlName="backlogFormat" value="paste" id="fmtPaste">
         <label class="btn btn-outline-secondary" for="fmtPaste">{{ t('format-paste') }}</label>
         <input type="radio" class="btn-check" formControlName="backlogFormat" value="csv" id="fmtCsv">
         <label class="btn btn-outline-secondary" for="fmtCsv">{{ t('format-csv') }}</label>
       </div>
-      <textarea class="form-control font-monospace" formControlName="backlog" rows="6"
-                [placeholder]="t('backlog-placeholder')" #backlogInput></textarea>
+      <textarea id="gameBacklog" class="form-control font-monospace" formControlName="backlog" rows="6"
+                [placeholder]="t('backlog-placeholder')"></textarea>
       <small class="form-text text-body-secondary">{{ t('backlog-hint') }}</small>
     </div>
     <button class="btn btn-primary" type="submit" [disabled]="formGroup.invalid" (click)="validate()">

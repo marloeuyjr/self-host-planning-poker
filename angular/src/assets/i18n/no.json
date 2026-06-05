@@ -4,90 +4,196 @@
   },
   "navbar": {
     "appTitle": "Driftsprognoser Planning Poker",
-    "appIcon": "Application icon",
-    "homeLink": "Homepage",
+    "appIcon": "Applikasjonsikon",
+    "homeLink": "Hjemmeside",
     "playerInfo": {
-      "spectator": "Spectator",
+      "spectator": "Tilskuer",
       "actions": {
-        "editPlayerName": "Edit your name"
+        "editPlayerName": "Endre navnet ditt"
       },
       "cancel": "{{buttons.cancel}}"
     },
     "gameInfo": {
-      "editTitle": "Edit game",
+      "editTitle": "Rediger spill",
       "cancel": "{{buttons.cancel}}"
     },
     "gameName": {
-      "copy-toast": "Game's link copied to clipboard"
+      "copy-toast": "Lenken til spillet er kopiert til utklippstavlen",
+      "exportCsv": "Eksporter økt som CSV",
+      "exportJson": "Eksporter økt som JSON"
     },
     "qrCodeModal": {
-      "title": "Scan to join"
+      "title": "Skann for å bli med"
     }
   },
   "gameForm": {
-    "name-label": "Game's name",
-    "name-placeholder": "Backlog Review Team Pizza",
-    "deck-label": "Game's deck",
-    "createButton-label": "Create new game",
-    "updateButton-label": "{{buttons.update}}"
+    "name-label": "Spillets navn",
+    "name-placeholder": "Backlog-gjennomgang Team Pizza",
+    "deck-label": "Spillets kortstokk",
+    "createButton-label": "Opprett nytt spill",
+    "updateButton-label": "{{buttons.update}}",
+    "backlog-label": "Backlog (valgfritt)",
+    "backlog-placeholder": "OPS-1  Legg til nattlig sikkerhetskopiering\nOPS-2  Juster readiness-proben",
+    "backlog-hint": "Lim inn: én \"NØKKEL  Sammendrag\" per linje. CSV: key,summary,url,description.",
+    "format-paste": "Lim inn",
+    "format-csv": "CSV"
   },
   "deckNames": {
     "FIBONACCI": "Fibonacci",
-    "MODIFIED_FIBONACCI": "Modified Fibonacci",
-    "POWERS": "Powers of 2",
-    "TRUST_VOTE": "Trust Vote",
-    "T_SHIRTS": "T-Shirt Sizes"
+    "MODIFIED_FIBONACCI": "Modifisert Fibonacci",
+    "POWERS": "Toerpotenser",
+    "TRUST_VOTE": "Tillitsavstemning",
+    "T_SHIRTS": "T-skjortestørrelser"
   },
   "ongoingGame": {
-    "page-title": "Planning Poker {{gameName}}"
+    "page-title": "Planning Poker {{gameName}}",
+    "offline": "Tilkoblingen ble brutt — kobler til på nytt …",
+    "announce-revealed": "Stemmene er avslørt.",
+    "announce-revealed-agreement": "Stemmene er avslørt. {{agreement}} % enighet.",
+    "you-are-driver": "Du har nå kontroll over økten.",
+    "driver-changed": "En annen deltaker har nå kontrollen."
   },
   "setUsername": {
-    "page-title": "Please enter your name before joining the game"
+    "page-title": "Skriv inn navnet ditt før du blir med i spillet"
   },
   "playerName-form": {
-    "username-placeholder": "John",
-    "joinButton-label": "Join the game",
+    "username-label": "Navnet ditt",
+    "username-placeholder": "Ola",
+    "joinButton-label": "Bli med i spillet",
     "updateButton-label": "{{buttons.update}}"
   },
+  "newGame": {
+    "heading": "Ny økt"
+  },
+  "cardPicker": {
+    "keyboard-hint": "Trykk 1–9 for å stemme · ? for hurtigtaster"
+  },
   "turnSummary": {
-    "average-label": "Average:",
-    "agreement-label": "Agreement:",
-    "votes-label": "{{votes}} Votes"
+    "average-label": "Gjennomsnitt:",
+    "agreement-label": "Enighet:",
+    "votes-label": "{{votes}} stemmer",
+    "median-label": "Median:",
+    "range-label": "Spenn:",
+    "round": "Runde {{round}}",
+    "consensus": "Konsensus",
+    "divergence": "Ingen konsensus",
+    "no-votes": "Ingen stemmer avgitt.",
+    "abstains-label": "{{count}} avsto",
+    "final-label": "Endelig estimat",
+    "accept": "Godta estimat",
+    "revote": "Stem på nytt",
+    "decide-hint": "To runder uten konsensus — sett verdien eller parker denne saken.",
+    "prior-label": "Tidligere:",
+    "prior-round": "R{{round}}: {{value}}",
+    "driver-only": "Øktens fører registrerer estimatet for denne saken."
   },
   "buttons": {
-    "edit": "Edit game info",
-    "save": "Save",
-    "cancel": "Cancel",
-    "update": "Update",
-    "close": "Close",
-    "reveal": "Reveal cards",
-    "newTurn": "New turn",
-    "link": "Copy link to join game",
-    "qrcode": "Display QR code to join game"
+    "edit": "Rediger spillinfo",
+    "save": "Lagre",
+    "cancel": "Avbryt",
+    "update": "Oppdater",
+    "close": "Lukk",
+    "reveal": "Avslør kort",
+    "newTurn": "Ny runde",
+    "link": "Kopier lenke for å bli med i spillet",
+    "qrcode": "Vis QR-kode for å bli med i spillet",
+    "claimDriver": "Ta kontroll",
+    "driver-only-hint": "Øktens fører avslører kortene og går videre."
   },
   "playerState": {
-    "spectator": "Spectator",
-    "player": "Player"
+    "spectator": "Tilskuer",
+    "player": "Spiller",
+    "driver": "Fører"
   },
   "footer": {
     "github": "GitHub",
     "dockerhub": "DockerHub",
-    "license": "License"
+    "license": "Lisens"
   },
   "errors": {
-    "disconnect": "Disconnected from game. Reason: \"{{reason}}\". Will reconnect in {{delay}}s...",
-    "0": "Error: \"{{message}}\"",
-    "4001": "You have selected a deck that does not exist.",
-    "4002": "Somehow, you are trying to do an action on a game that is not ongoing.",
-    "4003": "Somehow, you are trying to do an action on a game you are not part of.",
-    "4004": "This game does not exist.",
-    "4005": "The card you have picked is not an acceptable value of the current deck.",
-    "4006": "You are a spectator, you should not be able to pick a card."
+    "disconnect": "Frakoblet fra spillet. Årsak: \"{{reason}}\". Kobler til på nytt om {{delay}} s …",
+    "0": "Feil: \"{{message}}\"",
+    "4001": "Du har valgt en kortstokk som ikke finnes.",
+    "4002": "Du prøver å utføre en handling på et spill som ikke pågår.",
+    "4003": "Du prøver å utføre en handling på et spill du ikke er en del av.",
+    "4004": "Dette spillet finnes ikke.",
+    "4005": "Kortet du har valgt er ikke en gyldig verdi i den gjeldende kortstokken.",
+    "4006": "Du er tilskuer og skal ikke kunne velge et kort.",
+    "4007": "Den backloggen kunne ikke tolkes: {{message}}",
+    "4008": "Bare øktens fører kan gjøre det."
   },
   "reconnect": {
-    "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
-    "error": "Could not reconnect. Reason: \"{{error}}\".",
-    "failed": "Could not reconnect after {{attempts}} attempts.",
-    "success": "Successfully reconnected after {{attempts}} attempts."
+    "attempt": "Mistet tilkoblingen. Forsøker å koble til på nytt … ({{attempt}}/{{total}})",
+    "error": "Kunne ikke koble til på nytt. Årsak: \"{{error}}\".",
+    "failed": "Kunne ikke koble til på nytt etter {{attempts}} forsøk.",
+    "success": "Koblet til på nytt etter {{attempts}} forsøk."
+  },
+  "currentIssue": {
+    "show-detail": "Detaljer",
+    "hide-detail": "Skjul",
+    "none-selected": "Velg en sak fra køen for å begynne å estimere.",
+    "park": "Parker",
+    "park-reason-placeholder": "Årsak (valgfritt) — f.eks. mangler akseptansekriterier",
+    "park-refine": "Trenger raffinering",
+    "park-skip": "Hopp over"
+  },
+  "queueRail": {
+    "title": "Backlog",
+    "progress": "{{done}} / {{total}} estimert",
+    "complete": "Alle saker er estimert",
+    "parked": "Parkert ({{count}})",
+    "estimate-label": "Estimat: {{value}}",
+    "add": "+ Legg til saker",
+    "addPlaceholder": "OPS-3  Legg til nattlig sikkerhetskopiering\nOPS-4  Juster readiness-proben",
+    "addSubmit": "Legg til",
+    "addCancel": "Avbryt",
+    "formatPaste": "Lim inn",
+    "formatCsv": "CSV",
+    "status": {
+      "pending": "Venter",
+      "estimating": "Avstemning",
+      "estimated": "Ferdig",
+      "refinement": "Raffiner",
+      "skipped": "Hoppet over"
+    }
+  },
+  "savedSessions": {
+    "title": "Lagrede økter",
+    "empty": "Ingen lagrede økter ennå.",
+    "estimated": "{{done}} / {{total}} estimert",
+    "open": "Åpne økt {{name}}",
+    "export": {
+      "csv": "CSV",
+      "json": "JSON",
+      "csv-aria": "Last ned resultatene for {{name}} som CSV",
+      "json-aria": "Last ned resultatene for {{name}} som JSON"
+    }
+  },
+  "issueResolved": {
+    "estimated-label": "Estimert",
+    "recorded": "Registrert",
+    "revote": "Stem på nytt",
+    "refinement-label": "Trenger raffinering",
+    "skipped-label": "Hoppet over",
+    "reopen": "Gjenåpne",
+    "no-reason": "Ingen årsak oppgitt",
+    "driver-only": "Øktens fører kan gjenåpne denne saken.",
+    "take-control": "Ta kontroll"
+  },
+  "resume": {
+    "notice": "Økten er gjenopptatt — stem på nytt på den gjeldende saken (pågående stemmer gjenopprettes ikke)."
+  },
+  "keyboardHelp": {
+    "title": "Hurtigtaster",
+    "pick": "Velg et kort",
+    "unpick": "Trykk samme tast igjen for å nullstille",
+    "reveal": "Avslør kort",
+    "advance": "Neste runde / gå videre",
+    "accept": "Godta estimat",
+    "next": "Neste sak",
+    "prev": "Forrige sak",
+    "detail": "Veksle saksdetaljer",
+    "help": "Vis denne hjelpen",
+    "close": "Lukk"
   }
 }

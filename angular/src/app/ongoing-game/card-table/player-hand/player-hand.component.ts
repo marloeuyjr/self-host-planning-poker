@@ -14,6 +14,7 @@ import { TranslocoDirective } from '@ngneat/transloco';
 export class PlayerHandComponent {
   @Input() playerState?: PlayerState;
   @Input() deck?: Deck;
+  @Input() isDriver = false;
 
   displayCardValue = displayCardValue;
 }

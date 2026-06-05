@@ -46,15 +46,27 @@
     "T_SHIRTS": "T-Shirt Sizes"
   },
   "ongoingGame": {
-    "page-title": "Planning Poker {{gameName}}"
+    "page-title": "Planning Poker {{gameName}}",
+    "offline": "Connection lost — reconnecting…",
+    "announce-revealed": "Votes revealed.",
+    "announce-revealed-agreement": "Votes revealed. {{agreement}}% agreement.",
+    "you-are-driver": "You now have control of the session.",
+    "driver-changed": "Another participant now has control."
   },
   "setUsername": {
     "page-title": "Please enter your name before joining the game"
   },
   "playerName-form": {
+    "username-label": "Your name",
     "username-placeholder": "John",
     "joinButton-label": "Join the game",
     "updateButton-label": "{{buttons.update}}"
+  },
+  "newGame": {
+    "heading": "New session"
+  },
+  "cardPicker": {
+    "keyboard-hint": "Press 1–9 to vote · ? for shortcuts"
   },
   "turnSummary": {
     "average-label": "Average:",
@@ -85,11 +97,13 @@
     "newTurn": "New turn",
     "link": "Copy link to join game",
     "qrcode": "Display QR code to join game",
-    "claimDriver": "Take control"
+    "claimDriver": "Take control",
+    "driver-only-hint": "The session driver reveals and advances."
   },
   "playerState": {
     "spectator": "Spectator",
-    "player": "Player"
+    "player": "Player",
+    "driver": "Driver"
   },
   "footer": {
     "github": "GitHub",
@@ -126,6 +140,7 @@
   "queueRail": {
     "title": "Backlog",
     "progress": "{{done}} / {{total}} estimated",
+    "complete": "All issues estimated",
     "parked": "Parked ({{count}})",
     "estimate-label": "Estimate: {{value}}",
     "add": "+ Add issues",

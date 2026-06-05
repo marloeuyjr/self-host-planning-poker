@@ -122,8 +122,8 @@ $color-mode-type: media-query;
   --brand-hairline:         var(--brand-slate-700);
   --brand-hairline-strong:  var(--brand-slate-600);
   --brand-text-primary:     var(--brand-slate-100);
-  --brand-text-secondary:   var(--brand-slate-400);
-  --brand-text-muted:       var(--brand-slate-500);
+  --brand-text-secondary:   var(--brand-slate-300);  // ~7:1 on slate-900 (was slate-400)
+  --brand-text-muted:       var(--brand-slate-400);  // ~7:1 on slate-900 — AA (was slate-500, ~3.75:1, failed)
 
   --brand-card-bg:          var(--brand-slate-800);
   --brand-card-fg:          var(--brand-slate-050);
@@ -145,8 +145,8 @@ $color-mode-type: media-query;
     --brand-hairline:         var(--brand-slate-200);
     --brand-hairline-strong:  var(--brand-slate-300);
     --brand-text-primary:     var(--brand-slate-900);
-    --brand-text-secondary:   var(--brand-slate-500);
-    --brand-text-muted:       var(--brand-slate-400);
+    --brand-text-secondary:   var(--brand-slate-600);  // darker for AA on light surfaces
+    --brand-text-muted:       var(--brand-slate-500);  // ~4.5:1 on slate-050 (was slate-400)
 
     --brand-card-bg:          #ffffff;
     --brand-card-fg:          var(--brand-slate-900);
@@ -280,8 +280,13 @@ body {
   letter-spacing: 0.01em;
 }
 
-// Secondary / ghost button — slate outline, transparent fill
-.btn-secondary {
+// Secondary / ghost button — slate outline, transparent fill. Bootstrap's raw
+// .btn-outline-secondary (re-vote, re-open, take-control, the paste/CSV toggle)
+// otherwise maps to a flat slate-500 that fills solid grey on hover — the single
+// biggest "this is Bootstrap, not Grafana" tell beside the emerald primary. Thread
+// the same operational ghost treatment onto both.
+.btn-secondary,
+.btn-outline-secondary {
   --bs-btn-color:               var(--brand-text-primary);
   --bs-btn-bg:                  transparent;
   --bs-btn-border-color:        var(--brand-hairline-strong);
@@ -291,6 +296,16 @@ body {
   --bs-btn-active-color:        var(--brand-text-primary);
   --bs-btn-active-bg:           var(--brand-surface-2);
   --bs-btn-active-border-color: var(--brand-hairline-strong);
+}
+
+// btn-check toggle (the new-game paste/CSV format switch): the SELECTED option
+// reads in emerald so the active format is unmistakable, not a muted slate fill.
+.btn-check:checked + .btn-outline-secondary,
+.btn-check:active + .btn-outline-secondary {
+  color: #{$brand-slate-900};
+  background-color: #{$brand-emerald-500};
+  border-color: #{$brand-emerald-500};
+  font-weight: 600;
 }
 
 .btn-sm {

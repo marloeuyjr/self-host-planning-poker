@@ -6,9 +6,13 @@
         <span class="queue-rail__count">{{ t('progress', { done: estimatedCount(backlog), total: toEstimateCount(backlog) }) }}</span>
       </button>
       <div class="queue-rail__bar" role="progressbar"
+           [class.is-complete]="isComplete(backlog)"
            [attr.aria-valuenow]="estimatedCount(backlog)" aria-valuemin="0" [attr.aria-valuemax]="toEstimateCount(backlog)">
         <div class="queue-rail__bar-fill" [style.width.%]="progressPercent(backlog)"></div>
       </div>
+      <p class="queue-rail__complete" *ngIf="isComplete(backlog)" role="status">
+        <span aria-hidden="true">✓</span> {{ t('complete') }}
+      </p>
     </header>
 
     <!-- One item, two lines: key + chip/value, then the full-width summary. -->
@@ -17,9 +21,13 @@
           [class.is-current]="indexOf(backlog, issue) === backlog.currentIndex"
           [class.is-locked]="!isDriver"
           [attr.data-status]="issue.status"
+          [attr.role]="isDriver ? 'button' : null"
+          [attr.aria-disabled]="!isDriver"
+          [attr.aria-current]="indexOf(backlog, issue) === backlog.currentIndex ? 'true' : null"
           [attr.tabindex]="isDriver ? 0 : -1"
           (click)="select(indexOf(backlog, issue))"
-          (keydown.enter)="select(indexOf(backlog, issue))">
+          (keydown.enter)="select(indexOf(backlog, issue))"
+          (keydown.space)="select(indexOf(backlog, issue)); $event.preventDefault()">
         <div class="queue-rail__row">
           <span class="queue-rail__dot" [attr.data-status]="issue.status" aria-hidden="true"></span>
           <span class="queue-rail__key">{{ issue.key }}</span>

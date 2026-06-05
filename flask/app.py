@@ -3,6 +3,7 @@ import errno
 import io
 import os
 import re
+import secrets
 import sys
 import uuid
 
@@ -18,7 +19,12 @@ from gamestate.intake import parse_issues
 from gamestate.models import database_proxy, StoredGame, create_tables
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+# Session-cookie signing key. The soft driver gate trusts the Flask session
+# (player_id / game_id), so a predictable key would let those be forged — read it
+# from the environment in prod (set SECRET_KEY in the deployment). The random
+# fallback keeps dev safe; it rotates on restart, but clients transparently re-attach
+# via their localStorage rejoin token, so no session continuity is actually lost.
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
 
 # DATABASE_PATH lets a test (or a dev) point the DB at a scratch file and take the
 # dev-style socketio/CORS setup without the /data permission check. Prod sets nothing,
@@ -49,11 +55,55 @@ if not app_root.endswith('/'):
 app_title = os.getenv('APP_TITLE', 'Driftsprognoser Planning Poker')
 
 
+# Long-lived, content-stable static media (icons, favicons, fonts, images) can be
+# cached hard; everything else — the hashless app bundles, the i18n JSON, the JSON
+# APIs and the HTML shell — changes on deploy and must revalidate (Flask's
+# send_static_file otherwise leaves these on its default no-cache; we override only
+# the immutable media).
+_CACHE_IMMUTABLE_EXT = ('.woff', '.woff2', '.ttf', '.eot', '.png', '.jpg',
+                        '.jpeg', '.gif', '.svg', '.ico', '.webp')
+
+# The app is reachable over the public Cloudflare tunnel, so set a baseline of
+# security headers. The CSP keeps script to same-origin only and allows the Google
+# Fonts stylesheet + gstatic woff2; 'unsafe-inline' on style-src covers Angular's
+# emulated component styles and ng-bootstrap's positioning style attributes.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'; "
+    "frame-ancestors 'none'"
+)
+
+
+@app.after_request
+def set_response_headers(response):
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('Referrer-Policy', 'no-referrer')
+    response.headers.setdefault('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+    response.headers.setdefault('Content-Security-Policy', _CSP)
+    path = request.path or ''
+    if path.endswith(_CACHE_IMMUTABLE_EXT):
+        # Content-stable media — cache hard (override Flask's static-file default).
+        response.headers['Cache-Control'] = 'public, max-age=604800'   # 7d
+    else:
+        # Hashless bundles, the HTML shell and the JSON APIs revalidate on each load.
+        response.headers.setdefault('Cache-Control', 'no-cache')
+    return response
+
+
 @app.route('/create', methods=['POST'])
 def create():
-    body = request.json
-    game_name = body['name']
-    game_deck = body['deck']
+    body = request.get_json(silent=True) or {}
+    game_name = body.get('name')
+    game_deck = body.get('deck')
+    if not game_name or not game_deck:
+        return 'A game name and deck are required.', 400
     # Optional starting backlog (S3). Parsed here on the request thread — never a
     # Jira API call, never inside a Socket.IO handler (E1).
     backlog_text = body.get('backlog')
@@ -163,19 +213,27 @@ def join(data):
 
 @socketio.event
 def disconnect():
-    player_id = session['player_id']
-    game_id = session['game_id']
+    # A disconnect can fire before a successful join, twice, or after the room has
+    # emptied and the game was GC'd. None of those should raise out of the handler and
+    # strand the player as a ghost — guard the session lookups and the leave, and
+    # always clear the session keys.
+    player_id = session.get('player_id')
+    game_id = session.get('game_id')
+    session['player_id'] = None
+    session['game_id'] = None
+    if not player_id or not game_id:
+        return
 
-    state = gm.leave_game(game_id, player_id)
     leave_room(game_id)
+    try:
+        state = gm.leave_game(game_id, player_id)
+    except PlanningPokerException:
+        return   # game already gone (room emptied) — nothing left to broadcast
     emit('state', state, to=game_id, json=True)
     # Re-broadcast info so a driver auto-handoff (S8) reaches the remaining clients.
     info = gm.info(game_id)
     if info:
         emit('info', info, to=game_id, json=True)
-
-    session['player_id'] = None
-    session['game_id'] = None
 
 
 @socketio.event

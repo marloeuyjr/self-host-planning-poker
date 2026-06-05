@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnDestroy, Output } from '@angular/core
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserInformationService } from '../user-info/user-information.service';
 import { TranslocoDirective } from '@ngneat/transloco';
-import { debounceTime, Subject, Subscription } from "rxjs";
+import { Subject, Subscription, throttleTime } from "rxjs";
 
 @Component({
     selector: 'shpp-player-name-form',
@@ -27,8 +27,11 @@ export class PlayerNameFormComponent implements OnDestroy {
     });
 
     this.subject = new Subject<void>();
+    // Leading-edge throttle: join/update fires immediately on the first click (the
+    // 1s debounce made the primary CTA feel dead) while still coalescing an
+    // accidental double-submit within the window.
     this.subscription = this.subject
-    .pipe(debounceTime(1000))
+    .pipe(throttleTime(1000))
     .subscribe(() => {
       const username = this.formGroup.get('username')?.value;
       this.userInformation.setName(username);

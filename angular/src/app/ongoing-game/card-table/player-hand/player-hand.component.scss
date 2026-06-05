@@ -58,3 +58,18 @@
   color: var(--brand-text-muted);
   font-size: 1.5rem;
 }
+
+// Driver (soft host) marker — small emerald pill so the role gating every key action
+// has a visible owner.
+.player-driver-tag {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-slate-900);
+  background: var(--brand-emerald-500);
+  border-radius: 0.2rem;
+}

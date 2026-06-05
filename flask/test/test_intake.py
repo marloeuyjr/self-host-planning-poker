@@ -1,7 +1,7 @@
 import unittest
 
 from gamestate.exceptions import InvalidBacklogError
-from gamestate.intake import parse_issues
+from gamestate.intake import parse_issues, _MAX_INPUT_CHARS, _MAX_ISSUES
 
 
 class IntakeParseTestCase(unittest.TestCase):
@@ -76,6 +76,22 @@ class IntakeParseTestCase(unittest.TestCase):
     def test_unknown_format_falls_back_to_paste(self):
         issues = parse_issues('OPS-1  hi', 'something-else')
         self.assertEqual(issues[0]['jira_key'], 'OPS-1')
+
+    # --- import guardrails (size / count caps, single-worker DoS) ---
+
+    def test_accepts_rows_up_to_the_issue_cap(self):
+        text = '\n'.join(f'OPS-{i}  Summary {i}' for i in range(_MAX_ISSUES))
+        self.assertEqual(len(parse_issues(text, 'paste')), _MAX_ISSUES)
+
+    def test_rejects_more_rows_than_the_issue_cap(self):
+        text = '\n'.join(f'OPS-{i}  Summary {i}' for i in range(_MAX_ISSUES + 1))
+        with self.assertRaises(InvalidBacklogError):
+            parse_issues(text, 'paste')
+
+    def test_rejects_oversized_input_text(self):
+        text = 'OPS-1  ' + ('x' * (_MAX_INPUT_CHARS + 1))
+        with self.assertRaises(InvalidBacklogError):
+            parse_issues(text, 'paste')
 
 
 if __name__ == '__main__':

@@ -4,7 +4,8 @@
   <div content class="container h-100">
     <div class="row h-100">
       <div class="col"></div>
-      <div class="col col-12 col-md-6 col-lg-6 col-xl-6 col-xxl-6 d-flex flex-column">
+      <div class="col col-12 col-md-6 col-lg-6 col-xl-6 col-xxl-6 d-flex flex-column" *transloco="let t; read 'newGame'">
+        <h1 class="h4 mb-4">{{ t('heading') }}</h1>
         <shpp-game-form class="flex-grow-1" (gameOutput)="onNewGame($event)" />
         <shpp-saved-sessions />
         <shpp-footer />

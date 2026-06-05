@@ -48,4 +48,8 @@ export class SavedSessionsComponent implements OnInit {
   open(session: SavedSession): void {
     this.router.navigate(['game', session.uuid]);
   }
+
+  trackByUuid(_: number, session: SavedSession): string {
+    return session.uuid;
+  }
 }
