@@ -129,6 +129,13 @@ $color-mode-type: media-query;
   --brand-card-fg:          var(--brand-slate-050);
   --brand-card-empty-stroke: var(--brand-slate-600);
 
+  // Semantic feedback — the one palette extension beyond slate+emerald, for the
+  // agreement / divergence states emerald cannot express. Dark-first: these
+  // 300-level shades read as light text on the slate canvas; the light-mode block
+  // below darkens them so they keep AA contrast on white surfaces.
+  --brand-feedback-danger:  #FCA5A5;  // red-300 on dark
+  --brand-feedback-warning: #FCD34D;  // amber-300 on dark
+
   // Motion + signature
   --brand-motion-fast: 120ms;
   --brand-motion-base: 180ms;
@@ -151,6 +158,9 @@ $color-mode-type: media-query;
     --brand-card-bg:          #ffffff;
     --brand-card-fg:          var(--brand-slate-900);
     --brand-card-empty-stroke: var(--brand-slate-300);
+
+    --brand-feedback-danger:  #DC2626;  // red-600 — AA on white
+    --brand-feedback-warning: #B45309;  // amber-700 — AA on white
   }
 }
 

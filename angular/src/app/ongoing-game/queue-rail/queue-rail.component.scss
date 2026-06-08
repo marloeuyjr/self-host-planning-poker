@@ -78,6 +78,10 @@
   height: 100%;
   background: var(--brand-emerald-500);
   transition: width var(--brand-motion-base) var(--brand-motion-ease, ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .queue-rail__list {
@@ -92,6 +96,10 @@
   border-bottom: 1px solid var(--brand-hairline);
   cursor: pointer;
   transition: background var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   &:hover {
     background: var(--brand-surface-3);
