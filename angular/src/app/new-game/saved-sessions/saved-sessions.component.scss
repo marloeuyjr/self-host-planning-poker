@@ -30,6 +30,10 @@
   border-bottom: 1px solid var(--brand-hairline);
   transition: background var(--brand-motion-fast, 120ms) var(--brand-motion-ease, ease-out);
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   &:last-child {
     border-bottom: 0;
   }
@@ -100,6 +104,10 @@
   text-decoration: none;
   letter-spacing: 0.04em;
   transition: color var(--brand-motion-fast, 120ms) var(--brand-motion-ease, ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   &:hover,
   &:focus-visible {

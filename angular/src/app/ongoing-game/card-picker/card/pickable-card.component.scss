@@ -48,7 +48,7 @@
   &:hover {
     transform: translateY(-4px);
     border-color: var(--brand-emerald-500);
-    box-shadow: 0 6px 18px -8px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--brand-emerald-500) 35%, transparent);
   }
 
   &:active {
@@ -72,7 +72,7 @@
   background-color: color-mix(in oklab, var(--brand-emerald-500) 12%, var(--brand-card-bg));
   box-shadow:
     0 0 0 2px var(--brand-emerald-500),
-    0 10px 30px -12px rgba(16, 185, 129, 0.55);
+    0 10px 30px -12px color-mix(in oklab, var(--brand-emerald-500) 55%, transparent);
 
   .card-value {
     color: var(--brand-emerald-300);

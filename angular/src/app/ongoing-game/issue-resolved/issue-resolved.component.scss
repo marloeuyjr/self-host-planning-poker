@@ -32,6 +32,8 @@
   font-weight: 700;
   line-height: 1;
   color: var(--brand-emerald-400);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero", "ss01";
 
   &.is-empty {
     font-size: 1.25rem;

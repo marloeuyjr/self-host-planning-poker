@@ -8,6 +8,10 @@
   border-radius: 4px;
   transition: opacity var(--brand-motion-fast) var(--brand-motion-ease);
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   &:hover {
     opacity: 0.85;
   }

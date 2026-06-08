@@ -86,10 +86,10 @@
 
 // Agreement color states — tinted by brand colors so they read well on slate
 .turn-summary__metric .text-danger {
-  color: #FCA5A5 !important;  // red-300
+  color: var(--brand-feedback-danger) !important;
 }
 .turn-summary__metric .text-warning {
-  color: #FCD34D !important;  // amber-300
+  color: var(--brand-feedback-warning) !important;
 }
 .turn-summary__metric .text-success {
   color: var(--brand-emerald-300) !important;
@@ -130,7 +130,7 @@
   border: 1px solid var(--brand-hairline-strong);
 
   &.is-consensus { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
-  &.is-divergent { color: #FCD34D; border-color: #FCD34D; }
+  &.is-divergent { color: var(--brand-feedback-warning); border-color: var(--brand-feedback-warning); }
 }
 
 .turn-summary__empty {
@@ -202,6 +202,10 @@
   cursor: pointer;
   transition: all var(--brand-motion-fast) var(--brand-motion-ease, ease-out);
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   &:hover { color: var(--brand-emerald-300); border-color: var(--brand-emerald-500); }
 
   &.is-selected {
@@ -220,7 +224,7 @@
 .turn-summary__hint {
   margin: 0.75rem 0 0;
   font-size: 0.82rem;
-  color: #FCD34D;
+  color: var(--brand-feedback-warning);
 }
 
 .turn-summary__prior {

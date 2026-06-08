@@ -129,6 +129,13 @@ $color-mode-type: media-query;
   --brand-card-fg:          var(--brand-slate-050);
   --brand-card-empty-stroke: var(--brand-slate-600);
 
+  // Semantic feedback — the one palette extension beyond slate+emerald, for the
+  // agreement / divergence states emerald cannot express. Dark-first: these
+  // 300-level shades read as light text on the slate canvas; the light-mode block
+  // below darkens them so they keep AA contrast on white surfaces.
+  --brand-feedback-danger:  #FCA5A5;  // red-300 on dark
+  --brand-feedback-warning: #FCD34D;  // amber-300 on dark
+
   // Motion + signature
   --brand-motion-fast: 120ms;
   --brand-motion-base: 180ms;
@@ -151,6 +158,9 @@ $color-mode-type: media-query;
     --brand-card-bg:          #ffffff;
     --brand-card-fg:          var(--brand-slate-900);
     --brand-card-empty-stroke: var(--brand-slate-300);
+
+    --brand-feedback-danger:  #DC2626;  // red-600 — AA on white
+    --brand-feedback-warning: #B45309;  // amber-700 — AA on white
   }
 }
 
@@ -607,4 +617,25 @@ h2 {
 .modal-backdrop.show {
   opacity: 0.7;
   background-color: var(--brand-slate-950);
+}
+
+// =============================================================================
+// Global reduced-motion safety net.
+//
+// Per-component guards exist at their call sites (explicit intent); this catches
+// the global Bootstrap-override transitions in one place — links, .form-control,
+// nav + footer buttons, .btn-close, dropdowns — so no surface animates for users
+// who ask for less motion. 0.01ms (not none) keeps transitionend/animationend
+// firing so JS waiting on them still resolves. Note: the agreement confetti is
+// canvas-confetti (JS canvas), not CSS, so it is out of this reset's reach.
+// =============================================================================
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
