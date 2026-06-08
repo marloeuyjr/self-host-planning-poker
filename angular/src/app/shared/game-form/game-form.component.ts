@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Deck, decks, decksDict, displayDeckValues } from '../../model/deck';
 import { NgFor, NgIf } from '@angular/common';
 import { TranslocoDirective } from '@ngneat/transloco';
@@ -24,7 +24,7 @@ export class GameFormComponent implements OnInit{
 
   constructor(private fb: FormBuilder) {
     this.formGroup = this.fb.group({
-      name: [ '', [ Validators.required, Validators.minLength(1) ]],
+      name: [ '', [ Validators.required, GameFormComponent.nonBlank ]],
       deck: [ decksDict['FIBONACCI'], Validators.required ],
       // Optional starting backlog — only shown / sent when creating a game (S3).
       backlog: [ '' ],
@@ -42,7 +42,15 @@ export class GameFormComponent implements OnInit{
   }
 
   validate(): void {
-    this.gameOutput.emit(this.formGroup?.getRawValue());
+    // Trim so a padded name never reaches the broadcast/DB (the server also clamps
+    // length); a blank-after-trim name is already blocked by the nonBlank validator.
+    const raw = this.formGroup.getRawValue();
+    this.gameOutput.emit({ ...raw, name: (raw.name ?? '').trim() });
+  }
+
+  /** Reject a whitespace-only name (Validators.required alone treats "   " as set). */
+  private static nonBlank(control: AbstractControl): ValidationErrors | null {
+    return (control.value ?? '').trim().length > 0 ? null : { required: true };
   }
 
   isNewGame(): boolean {

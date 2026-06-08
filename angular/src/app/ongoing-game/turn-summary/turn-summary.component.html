@@ -82,6 +82,7 @@
   </div>
   <p class="turn-summary__hint" *ngIf="isBacklogGame() && results && !isDriver">{{ t('driver-only') }}</p>
   <p class="turn-summary__hint" *ngIf="showDecideHint()">{{ t('decide-hint') }}</p>
+  <p class="turn-summary__hint" *ngIf="showPickFinalHint()">{{ t('pick-final-hint') }}</p>
 
   <!-- Prior rounds — muted reference only (anti-anchoring, EC2) -->
   <div class="turn-summary__prior" *ngIf="isBacklogGame() && priorRounds.length">

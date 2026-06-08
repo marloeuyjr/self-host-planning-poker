@@ -3,7 +3,12 @@
     <div class="mb-3">
       <label for="playerUsername" class="form-label">{{ t('username-label') }}</label>
       <input id="playerUsername" type="text" class="form-control" formControlName="username"
-             autocomplete="name" [placeholder]="t('username-placeholder')">
+             autocomplete="name" aria-required="true"
+             [attr.aria-invalid]="formGroup.get('username')?.invalid && formGroup.get('username')?.touched"
+             [attr.aria-describedby]="formGroup.get('username')?.invalid && formGroup.get('username')?.touched ? 'playerUsername-error' : null"
+             [placeholder]="t('username-placeholder')">
+      <small id="playerUsername-error" class="form-text text-danger"
+             *ngIf="formGroup.get('username')?.invalid && formGroup.get('username')?.touched">{{ t('username-error') }}</small>
     </div>
     <button class="btn btn-primary" type="submit" [disabled]="formGroup.invalid" (click)="setUsername()">
       {{ join ? t('joinButton-label') : t('updateButton-label')}}

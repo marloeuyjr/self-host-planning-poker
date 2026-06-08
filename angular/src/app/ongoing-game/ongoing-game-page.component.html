@@ -4,6 +4,14 @@
       <shpp-game-name class="d-flex" />
       <shpp-game-info class="d-flex" />
     </div>
+    <button type="button" class="btn btn-outline-light btn-sm align-self-start me-2"
+            *transloco="let b; read 'buttons'"
+            [attr.aria-label]="b('help')" [attr.title]="b('help')"
+            (click)="toggleHelp()">
+      <svg class="bi bi-question-circle" width="1.2em" height="1.2em" fill="currentColor" aria-hidden="true">
+        <use xlink:href="assets/bootstrap-icons.svg#question-circle"/>
+      </svg>
+    </button>
     <shpp-nav-player-info />
   </ng-container>
 
@@ -14,6 +22,7 @@
     </div>
     <h1 class="visually-hidden">{{ gameName }}</h1>
     <p class="visually-hidden" aria-live="polite" role="status">{{ announcement }}</p>
+    <p class="visually-hidden" aria-live="polite" role="status">{{ rosterAnnouncement }}</p>
     <shpp-current-issue />
     <div class="game-body">
       <shpp-queue-rail />

@@ -1,0 +1,15 @@
+// Driver (soft host) chip — mirrors the player-driver-tag on the card table so the
+// always-visible nav carries the same emerald pill for whoever holds control.
+.nav-driver-chip {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-slate-900);
+  background: var(--brand-emerald-500);
+  border-radius: 0.2rem;
+  vertical-align: middle;
+}

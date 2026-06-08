@@ -1,11 +1,10 @@
-import { enableProdMode, Injectable } from '@angular/core';
+import { enableProdMode, EnvironmentInjector, inject, Injectable } from '@angular/core';
 import {environment} from './environments/environment';
 import {AppComponent} from './app/app.component';
 import { provideTranslocoLocale } from '@ngneat/transloco-locale';
 import {bootstrapApplication} from '@angular/platform-browser';
-import {provideRouter, Routes} from "@angular/router";
+import {ActivatedRouteSnapshot, provideRouter, Routes} from "@angular/router";
 import {usernameSetGuard} from "./app/shared/user-info/username-set.service";
-import {canActivateGame} from "./app/ongoing-game/current-game.service";
 import { HttpClient, provideHttpClient } from "@angular/common/http";
 import { provideTransloco, Translation, translocoConfig, TranslocoLoader } from '@ngneat/transloco';
 import { APP_BASE_HREF, PathLocationStrategy, PlatformLocation } from '@angular/common';
@@ -24,7 +23,19 @@ const routes: Routes = [
   {
     path: 'game/:gameId',
     loadComponent: () => import('./app/ongoing-game/ongoing-game-page.component'),
-    canActivate: [ usernameSetGuard, canActivateGame ],
+    canActivate: [
+      usernameSetGuard,
+      // Keep current-game.service (and its socket.io-client dependency, ~39 kB raw)
+      // out of the eager main bundle — only the /game route needs the socket. Capture
+      // the injector synchronously (the injection context is gone after the awaited
+      // dynamic import), then resolve the service from the lazy chunk that already
+      // imports it. canActivate runs join() exactly as the static guard did.
+      (route: ActivatedRouteSnapshot) => {
+        const injector = inject(EnvironmentInjector);
+        return import('./app/ongoing-game/current-game.service')
+          .then((m) => injector.get(m.CurrentGameService).canActivate(route));
+      }
+    ],
     providers: [ provideHttpClient() ]
   },
   {

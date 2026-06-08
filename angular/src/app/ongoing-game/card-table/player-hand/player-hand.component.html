@@ -18,6 +18,12 @@
       {{ playerState.name }}
     </div>
     <ng-container *transloco="let t">
+      <!-- Pre-reveal pick state is otherwise carried only by the face-down/dashed card
+           styling — give assistive tech the same signal in text. (Spectators get the
+           eye icon's label; a revealed hand shows its value directly.) -->
+      <span class="visually-hidden" *ngIf="!playerState.spectator && playerState.hand === undefined">
+        {{ playerState.hasPicked ? t('playerState.has-picked') : t('playerState.waiting') }}
+      </span>
       <span class="player-driver-tag" *ngIf="isDriver">{{ t('playerState.driver') }}</span>
     </ng-container>
   </div>

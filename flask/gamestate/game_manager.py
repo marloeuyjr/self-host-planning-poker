@@ -12,6 +12,16 @@ from gamestate.models import StoredGame, Issue, EstimationResult, database_proxy
 from gamestate.player import Player
 from gamestate.stats import compute_stats, is_numeric_deck
 
+# Server-side caps on free-text that fans out into every full-snapshot broadcast and
+# the durable record. A safety net well above the tighter client `maxlength`, not a
+# UX limit — clamp rather than reject so a fat-finger paste never strands a handler.
+MAX_NAME_LENGTH = 120
+MAX_PARK_REASON_LENGTH = 200
+
+
+def _clamp(text, limit):
+    return text[:limit] if isinstance(text, str) else text
+
 
 class GameManager:
     """Class that manages games"""
@@ -26,6 +36,7 @@ class GameManager:
         written atomically so a bad row never leaves a half-created session.
         """
         game_uuid = str(uuid.uuid4())
+        name = _clamp(name, MAX_NAME_LENGTH)
         deck = self.__get_deck(deck_name)
         with database_proxy.atomic():
             stored_game = StoredGame.create(uuid=game_uuid, name=name, deck=deck_name)
@@ -167,7 +178,7 @@ class GameManager:
         """Join (or reattach via `token`, S7). Returns info, state, the effective
         player id, and whether this is a post-restart resume (E5)."""
         game = self.get(game_uuid)
-        player = Player(player_name, is_spectator)
+        player = Player(_clamp(player_name, MAX_NAME_LENGTH), is_spectator)
         effective_id = game.player_joins(player_id, player, token=token)
         return game.info(), game.state(), effective_id, game.is_resumed()
 
@@ -180,14 +191,14 @@ class GameManager:
 
     def rename_game(self, game_uuid: str, game_name: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)
-        game.name = game_name
-        StoredGame.update(name=game_name).where(StoredGame.uuid == uuid.UUID(game_uuid)).execute()
+        game.name = _clamp(game_name, MAX_NAME_LENGTH)
+        StoredGame.update(name=game.name).where(StoredGame.uuid == uuid.UUID(game_uuid)).execute()
         return game.info()
 
     def set_player_name(self, game_uuid: str, player_uuid: str, player_name: str) -> dict:
         game = self.__get_ongoing_game(game_uuid)
         player = game.get_player(player_uuid)
-        player.name = player_name
+        player.name = _clamp(player_name, MAX_NAME_LENGTH)
         return game.state()
 
     def set_player_spectator(self, game_uuid: str, player_uuid: str, is_spectator: bool) -> dict:
@@ -219,6 +230,17 @@ class GameManager:
         stats = compute_stats(game.get_cast_votes(), game.get_deck())
         proposed = stats['mode'][0] if len(stats['mode']) == 1 else None
         return {**stats, 'proposedFinalValue': proposed, 'round': game.current_round()}
+
+    def current_results(self, game_uuid: str) -> Optional[dict]:
+        """The revealed round's results, or None when no reveal is showing.
+
+        Lets a player who joins mid-reveal render the round that's actually on the
+        table instead of an empty 'no votes' summary (the hands are still set until
+        accept/revote/end_turn, so the same stats reveal_cards computed recompute)."""
+        game = self.games.get(game_uuid)
+        if game is None or not game.info().get('revealed'):
+            return None
+        return self.__round_results(game)
 
     def accept_estimate(self, game_uuid: str, final_value=None) -> tuple[dict, dict, dict]:
         """Record the current round and advance — the durability fix (S5, E4).
@@ -325,6 +347,7 @@ class GameManager:
             raise NoCurrentIssueError('No issue is currently selected')
         if status not in ('refinement', 'skipped'):
             status = 'refinement'
+        reason = _clamp(reason, MAX_PARK_REASON_LENGTH)
         # Park + advance commit together (see accept_estimate).
         with database_proxy.atomic():
             game.park_current(status, reason)

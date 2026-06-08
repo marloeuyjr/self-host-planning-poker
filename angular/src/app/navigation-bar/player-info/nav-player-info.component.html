@@ -14,6 +14,11 @@
 
 <div class="d-flex flex-column align-items-end">
   <div>
+    <!-- Persistent glanceable "I hold control" cue — the role gates every key action,
+         and the player's own card (which carries the same tag) can scroll out of view. -->
+    <ng-container *transloco="let t">
+      <span class="nav-driver-chip" *ngIf="currentGame.isDriver$ | async">{{ t('playerState.driver') }}</span>
+    </ng-container>
     {{ userInformation.getName() }}
     <div class="btn-group mx-2" role="group" *transloco="let t">
       <button class="btn btn-outline-light btn-sm"

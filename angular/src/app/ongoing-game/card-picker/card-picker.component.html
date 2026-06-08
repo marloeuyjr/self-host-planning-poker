@@ -1,22 +1,23 @@
 <div class="d-flex flex-column h-100" *ngIf="deck">
-  <div class="container d-flex overflow-auto align-items-center flex-grow-1 pt-4">
-    <div class="flex-grow-1"></div>
-    <shpp-pickable-card *ngFor="let card of deck.values; let i = index"
-               [cardValue]="card"
-               [keyHint]="keyHintFor(i)"
-               [disabled]="isSpectator || isGameRevealed"
-               [selected]="selectedCard === card"
-               [attr.tabindex]="(isGameRevealed || isSpectator) ? -1 : 0"
-               role="button"
-               [attr.aria-pressed]="selectedCard === card"
-               [attr.aria-disabled]="isSpectator || isGameRevealed"
-               (click)="selectCard(card)"
-               (keydown.enter)="selectCard(card)"
-               (keydown.space)="selectCard(card); $event.preventDefault()">
-    </shpp-pickable-card>
-    <div class="flex-grow-1"></div>
-  </div>
   <ng-container *transloco="let t">
+    <div class="container d-flex overflow-auto align-items-center flex-grow-1 pt-4">
+      <div class="flex-grow-1"></div>
+      <shpp-pickable-card *ngFor="let card of deck.values; let i = index"
+                 [cardValue]="card"
+                 [keyHint]="keyHintFor(i)"
+                 [disabled]="isSpectator || isGameRevealed"
+                 [selected]="selectedCard === card"
+                 [attr.tabindex]="(isGameRevealed || isSpectator) ? -1 : 0"
+                 role="button"
+                 [attr.aria-pressed]="selectedCard === card"
+                 [attr.aria-disabled]="isSpectator || isGameRevealed"
+                 [attr.aria-label]="card.value === '?' ? t('cardPicker.abstain-label') : t('cardPicker.vote-label', { value: card.display })"
+                 (click)="selectCard(card)"
+                 (keydown.enter)="selectCard(card)"
+                 (keydown.space)="selectCard(card); $event.preventDefault()">
+      </shpp-pickable-card>
+      <div class="flex-grow-1"></div>
+    </div>
     <p class="card-picker__hint text-center small text-muted mt-1 mb-2"
        *ngIf="!isSpectator && !isGameRevealed">{{ t('cardPicker.keyboard-hint') }}</p>
   </ng-container>

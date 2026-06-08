@@ -1,6 +1,6 @@
 <ng-container *transloco="let t; read 'keyboardHelp'">
   <div class="modal-header">
-    <h4 class="modal-title">{{ t('title') }}</h4>
+    <h4 id="kbd-help-title" class="modal-title">{{ t('title') }}</h4>
     <button *transloco="let b; read 'buttons'"
             type="button" class="btn-close"
             [attr.aria-label]="b('close')"

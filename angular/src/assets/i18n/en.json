@@ -2,6 +2,9 @@
   "translation-hints": {
     "game": "In the project, it's \"game\" as in \"a game of chess\", not as in \"a party game\"."
   },
+  "a11y": {
+    "skip-to-content": "Skip to main content"
+  },
   "navbar": {
     "appTitle": "Driftsprognoser Planning Poker",
     "appIcon": "Application icon",
@@ -23,12 +26,14 @@
       "exportJson": "Export session as JSON"
     },
     "qrCodeModal": {
-      "title": "Scan to join"
+      "title": "Scan to join",
+      "canvas-alt": "QR code linking to {{url}}"
     }
   },
   "gameForm": {
     "name-label": "Game's name",
     "name-placeholder": "Backlog Review Team Pizza",
+    "name-error": "Enter a game name.",
     "deck-label": "Game's deck",
     "createButton-label": "Create new game",
     "updateButton-label": "{{buttons.update}}",
@@ -50,6 +55,8 @@
     "offline": "Connection lost — reconnecting…",
     "announce-revealed": "Votes revealed.",
     "announce-revealed-agreement": "Votes revealed. {{agreement}}% agreement.",
+    "announce-joined": "{{name}} joined the session.",
+    "announce-left": "{{name}} left the session.",
     "you-are-driver": "You now have control of the session.",
     "driver-changed": "Another participant now has control."
   },
@@ -59,6 +66,7 @@
   "playerName-form": {
     "username-label": "Your name",
     "username-placeholder": "John",
+    "username-error": "Enter a name to continue.",
     "joinButton-label": "Join the game",
     "updateButton-label": "{{buttons.update}}"
   },
@@ -66,7 +74,9 @@
     "heading": "New session"
   },
   "cardPicker": {
-    "keyboard-hint": "Press 1–9 to vote · ? for shortcuts"
+    "keyboard-hint": "Press 1–9 to vote · ? for shortcuts",
+    "vote-label": "Vote {{value}}",
+    "abstain-label": "Abstain from this round"
   },
   "turnSummary": {
     "average-label": "Average:",
@@ -83,9 +93,10 @@
     "accept": "Accept estimate",
     "revote": "Re-vote",
     "decide-hint": "Two rounds without consensus — set the value or park this issue.",
+    "pick-final-hint": "Pick a final value to accept.",
     "prior-label": "Prior:",
     "prior-round": "R{{round}}: {{value}}",
-    "driver-only": "The session driver records the estimate for this issue."
+    "driver-only": "Only the session driver can record this estimate."
   },
   "buttons": {
     "edit": "Edit game info",
@@ -98,12 +109,15 @@
     "link": "Copy link to join game",
     "qrcode": "Display QR code to join game",
     "claimDriver": "Take control",
-    "driver-only-hint": "The session driver reveals and advances."
+    "help": "Show keyboard shortcuts",
+    "driver-only-hint": "Only the session driver can reveal and advance."
   },
   "playerState": {
     "spectator": "Spectator",
     "player": "Player",
-    "driver": "Driver"
+    "driver": "Driver",
+    "has-picked": "Has picked",
+    "waiting": "Waiting to pick"
   },
   "footer": {
     "github": "GitHub",
@@ -111,11 +125,10 @@
     "license": "License"
   },
   "errors": {
-    "disconnect": "Disconnected from game. Reason: \"{{reason}}\". Will reconnect in {{delay}}s...",
-    "0": "Error: \"{{message}}\"",
+    "0": "Something didn't go through. Try again, or reload the session.",
     "4001": "You have selected a deck that does not exist.",
-    "4002": "Somehow, you are trying to do an action on a game that is not ongoing.",
-    "4003": "Somehow, you are trying to do an action on a game you are not part of.",
+    "4002": "That action can't be applied — this session is no longer active.",
+    "4003": "That action can't be applied — you're not part of this session.",
     "4004": "This game does not exist.",
     "4005": "The card you have picked is not an acceptable value of the current deck.",
     "4006": "You are a spectator, you should not be able to pick a card.",
@@ -123,8 +136,6 @@
     "4008": "Only the session driver can do that."
   },
   "reconnect": {
-    "attempt": "Lost connection. Attempting reconnection... ({{attempt}}/{{total}})",
-    "error": "Could not reconnect. Reason: \"{{error}}\".",
     "failed": "Could not reconnect after {{attempts}} attempts.",
     "success": "Successfully reconnected after {{attempts}} attempts."
   },
@@ -132,6 +143,7 @@
     "show-detail": "Details",
     "hide-detail": "Hide",
     "none-selected": "Select an issue from the queue to start estimating.",
+    "waiting-driver": "Waiting for the driver to pick the first issue…",
     "park": "Park",
     "park-reason-placeholder": "Reason (optional) — e.g. missing AC",
     "park-refine": "Needs refinement",
@@ -177,7 +189,7 @@
     "skipped-label": "Skipped",
     "reopen": "Re-open",
     "no-reason": "No reason given",
-    "driver-only": "The session driver can re-open this issue.",
+    "driver-only": "Only the session driver can re-open this issue.",
     "take-control": "Take control"
   },
   "resume": {
