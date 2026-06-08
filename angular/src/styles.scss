@@ -618,3 +618,24 @@ h2 {
   opacity: 0.7;
   background-color: var(--brand-slate-950);
 }
+
+// =============================================================================
+// Global reduced-motion safety net.
+//
+// Per-component guards exist at their call sites (explicit intent); this catches
+// the global Bootstrap-override transitions in one place — links, .form-control,
+// nav + footer buttons, .btn-close, dropdowns — so no surface animates for users
+// who ask for less motion. 0.01ms (not none) keeps transitionend/animationend
+// firing so JS waiting on them still resolves. Note: the agreement confetti is
+// canvas-confetti (JS canvas), not CSS, so it is out of this reset's reach.
+// =============================================================================
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
