@@ -17,6 +17,7 @@ import { CurrentIssueComponent } from './current-issue/current-issue.component';
 import { QueueRailComponent } from './queue-rail/queue-rail.component';
 import { IssueResolvedComponent } from './issue-resolved/issue-resolved.component';
 import { KeyboardHelpModalComponent } from './keyboard-help/keyboard-help-modal.component';
+import { GameState } from '../model/events';
 
 @Component({
     selector: 'shpp-ongoing-game-page',
@@ -47,6 +48,11 @@ export default class OngoingGamePageComponent implements OnDestroy {
   // Screen-reader announcement for the reveal — the *ngIf swap from picker to summary
   // is otherwise silent. Pushed into a visually-hidden aria-live region (WCAG 4.1.3).
   announcement = '';
+  // A SEPARATE polite region for roster changes so a join/leave never clobbers the
+  // reveal announcement above. Seeded from the first non-empty snapshot (the room that
+  // was already present when we joined is not announced).
+  rosterAnnouncement = '';
+  private knownPlayers: GameState | null = null;
   private isBacklogGame = false;
   private currentStatus: string | null = null;
 
@@ -93,6 +99,26 @@ export default class OngoingGamePageComponent implements OnDestroy {
       this.announcement = pct != null
         ? this.transloco.translate('ongoingGame.announce-revealed-agreement', { agreement: pct })
         : this.transloco.translate('ongoingGame.announce-revealed');
+    }));
+    this.subscriptions.push(this.currentGameService.state$.subscribe((state) => {
+      const prev = this.knownPlayers;
+      if (prev === null) {
+        // Seed silently on the first roster we see; treat an empty snapshot as
+        // not-yet-seeded so a join race doesn't announce the whole room at once.
+        if (Object.keys(state).length > 0) {
+          this.knownPlayers = state;
+        }
+        return;
+      }
+      this.knownPlayers = state;
+      // Picks don't change the key set, so only genuine roster changes get here.
+      const joined = Object.keys(state).filter((id) => !(id in prev));
+      const left = Object.keys(prev).filter((id) => !(id in state));
+      if (joined.length === 1 && left.length === 0) {
+        this.rosterAnnouncement = this.transloco.translate('ongoingGame.announce-joined', { name: state[joined[0]].name });
+      } else if (left.length === 1 && joined.length === 0) {
+        this.rosterAnnouncement = this.transloco.translate('ongoingGame.announce-left', { name: prev[left[0]].name });
+      }
     }));
     this.subscriptions.push(this.currentGameService.hasBacklog$.subscribe((has) => this.isBacklogGame = has));
     this.subscriptions.push(this.currentGameService.currentIssue$
@@ -201,13 +227,15 @@ export default class OngoingGamePageComponent implements OnDestroy {
     }
   }
 
-  private toggleHelp(): void {
+  /** Public so the always-visible nav "?" button can open the same help the `?` key
+   *  toggles (a second press, or the button again, closes it). */
+  toggleHelp(): void {
     if (this.helpRef) {
       this.helpRef.close();
       this.helpRef = undefined;
       return;
     }
-    this.helpRef = this.modalService.open(KeyboardHelpModalComponent);
+    this.helpRef = this.modalService.open(KeyboardHelpModalComponent, { ariaLabelledBy: 'kbd-help-title' });
     this.helpRef.result.finally(() => this.helpRef = undefined);
   }
 

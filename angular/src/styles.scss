@@ -384,6 +384,22 @@ button:focus-visible,
   outline: none;
 }
 
+// Skip-to-content link (WCAG 2.4.1) — Bootstrap's .visually-hidden-focusable keeps it
+// out of the layout until it takes focus; on focus it pins to the top-left as a small
+// emerald chip, the first thing a keyboard user reaches on any route.
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1080;
+  padding: 0.4rem 0.75rem;
+  color: var(--brand-slate-900);
+  background: var(--brand-emerald-500);
+  border-radius: 0.25rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 // Modals
 .modal-content {
   background-color: var(--brand-surface-2);

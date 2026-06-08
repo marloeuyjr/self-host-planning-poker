@@ -2,6 +2,9 @@
   "translation-hints": {
     "game": "In the project, it's \"game\" as in \"a game of chess\", not as in \"a party game\"."
   },
+  "a11y": {
+    "skip-to-content": "Hopp til hovedinnhold"
+  },
   "navbar": {
     "appTitle": "Driftsprognoser Planning Poker",
     "appIcon": "Applikasjonsikon",
@@ -23,12 +26,14 @@
       "exportJson": "Eksporter økt som JSON"
     },
     "qrCodeModal": {
-      "title": "Skann for å bli med"
+      "title": "Skann for å bli med",
+      "canvas-alt": "QR-kode som lenker til {{url}}"
     }
   },
   "gameForm": {
     "name-label": "Spillets navn",
     "name-placeholder": "Backlog-gjennomgang Team Pizza",
+    "name-error": "Skriv inn et spillnavn.",
     "deck-label": "Spillets kortstokk",
     "createButton-label": "Opprett nytt spill",
     "updateButton-label": "{{buttons.update}}",
@@ -50,6 +55,8 @@
     "offline": "Tilkoblingen ble brutt — kobler til på nytt …",
     "announce-revealed": "Stemmene er avslørt.",
     "announce-revealed-agreement": "Stemmene er avslørt. {{agreement}} % enighet.",
+    "announce-joined": "{{name}} ble med i økten.",
+    "announce-left": "{{name}} forlot økten.",
     "you-are-driver": "Du har nå kontroll over økten.",
     "driver-changed": "En annen deltaker har nå kontrollen."
   },
@@ -59,6 +66,7 @@
   "playerName-form": {
     "username-label": "Navnet ditt",
     "username-placeholder": "Ola",
+    "username-error": "Skriv inn et navn for å fortsette.",
     "joinButton-label": "Bli med i spillet",
     "updateButton-label": "{{buttons.update}}"
   },
@@ -66,7 +74,9 @@
     "heading": "Ny økt"
   },
   "cardPicker": {
-    "keyboard-hint": "Trykk 1–9 for å stemme · ? for hurtigtaster"
+    "keyboard-hint": "Trykk 1–9 for å stemme · ? for hurtigtaster",
+    "vote-label": "Stem {{value}}",
+    "abstain-label": "Avstå fra denne runden"
   },
   "turnSummary": {
     "average-label": "Gjennomsnitt:",
@@ -83,9 +93,10 @@
     "accept": "Godta estimat",
     "revote": "Stem på nytt",
     "decide-hint": "To runder uten konsensus — sett verdien eller parker denne saken.",
+    "pick-final-hint": "Velg en endelig verdi for å godta.",
     "prior-label": "Tidligere:",
     "prior-round": "R{{round}}: {{value}}",
-    "driver-only": "Øktens fører registrerer estimatet for denne saken."
+    "driver-only": "Bare øktens fører kan registrere dette estimatet."
   },
   "buttons": {
     "edit": "Rediger spillinfo",
@@ -98,12 +109,15 @@
     "link": "Kopier lenke for å bli med i spillet",
     "qrcode": "Vis QR-kode for å bli med i spillet",
     "claimDriver": "Ta kontroll",
-    "driver-only-hint": "Øktens fører avslører kortene og går videre."
+    "help": "Vis hurtigtaster",
+    "driver-only-hint": "Bare øktens fører kan avsløre og gå videre."
   },
   "playerState": {
     "spectator": "Tilskuer",
     "player": "Spiller",
-    "driver": "Fører"
+    "driver": "Fører",
+    "has-picked": "Har valgt",
+    "waiting": "Venter på å velge"
   },
   "footer": {
     "github": "GitHub",
@@ -111,11 +125,10 @@
     "license": "Lisens"
   },
   "errors": {
-    "disconnect": "Frakoblet fra spillet. Årsak: \"{{reason}}\". Kobler til på nytt om {{delay}} s …",
-    "0": "Feil: \"{{message}}\"",
+    "0": "Noe gikk ikke gjennom. Prøv igjen, eller last økten på nytt.",
     "4001": "Du har valgt en kortstokk som ikke finnes.",
-    "4002": "Du prøver å utføre en handling på et spill som ikke pågår.",
-    "4003": "Du prøver å utføre en handling på et spill du ikke er en del av.",
+    "4002": "Handlingen kan ikke utføres — denne økten er ikke lenger aktiv.",
+    "4003": "Handlingen kan ikke utføres — du er ikke en del av denne økten.",
     "4004": "Dette spillet finnes ikke.",
     "4005": "Kortet du har valgt er ikke en gyldig verdi i den gjeldende kortstokken.",
     "4006": "Du er tilskuer og skal ikke kunne velge et kort.",
@@ -123,8 +136,6 @@
     "4008": "Bare øktens fører kan gjøre det."
   },
   "reconnect": {
-    "attempt": "Mistet tilkoblingen. Forsøker å koble til på nytt … ({{attempt}}/{{total}})",
-    "error": "Kunne ikke koble til på nytt. Årsak: \"{{error}}\".",
     "failed": "Kunne ikke koble til på nytt etter {{attempts}} forsøk.",
     "success": "Koblet til på nytt etter {{attempts}} forsøk."
   },
@@ -132,9 +143,10 @@
     "show-detail": "Detaljer",
     "hide-detail": "Skjul",
     "none-selected": "Velg en sak fra køen for å begynne å estimere.",
+    "waiting-driver": "Venter på at føreren velger den første saken …",
     "park": "Parker",
     "park-reason-placeholder": "Årsak (valgfritt) — f.eks. mangler akseptansekriterier",
-    "park-refine": "Trenger raffinering",
+    "park-refine": "Trenger avklaring",
     "park-skip": "Hopp over"
   },
   "queueRail": {
@@ -153,7 +165,7 @@
       "pending": "Venter",
       "estimating": "Avstemning",
       "estimated": "Ferdig",
-      "refinement": "Raffiner",
+      "refinement": "Avklaring",
       "skipped": "Hoppet over"
     }
   },
@@ -173,11 +185,11 @@
     "estimated-label": "Estimert",
     "recorded": "Registrert",
     "revote": "Stem på nytt",
-    "refinement-label": "Trenger raffinering",
+    "refinement-label": "Trenger avklaring",
     "skipped-label": "Hoppet over",
     "reopen": "Gjenåpne",
     "no-reason": "Ingen årsak oppgitt",
-    "driver-only": "Øktens fører kan gjenåpne denne saken.",
+    "driver-only": "Bare øktens fører kan gjenåpne denne saken.",
     "take-control": "Ta kontroll"
   },
   "resume": {

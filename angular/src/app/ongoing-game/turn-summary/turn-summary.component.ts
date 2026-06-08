@@ -130,6 +130,14 @@ export class TurnSummaryComponent implements AfterViewInit, OnDestroy {
     return this.isBacklogGame() && !!this.results && !this.results.consensus && this.results.round >= 3;
   }
 
+  /** Accept is disabled until a final value is chosen — and with no clear modal vote
+   *  there's nothing to seed it, so Enter/Accept silently no-ops. Tell the driver why,
+   *  unless the stronger "decide or park" hint is already showing. */
+  showPickFinalHint(): boolean {
+    return this.isBacklogGame() && !!this.results && this.isDriver
+      && this.finalValueInput === null && !this.showDecideHint();
+  }
+
   agreementClass(): string {
     const agreement = this.results?.agreement ?? 0;
     if (!agreement) {

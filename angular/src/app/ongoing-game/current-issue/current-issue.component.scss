@@ -25,6 +25,9 @@
   font-weight: 500;
   flex: 1 1 auto;
   min-width: 0;
+  // A long unbroken key/URL in a pasted summary would otherwise force a horizontal
+  // scrollbar on the whole band; break it instead.
+  overflow-wrap: anywhere;
 }
 
 .current-issue__toggle {

@@ -60,7 +60,7 @@ export class NavGameNameComponent implements OnDestroy {
   async displayQrCode(): Promise<void> {
     const { QrCodeModalContentComponent } =
       await import('./qr-code-modal-content/qr-code-modal-content.component');
-    const modalRef = this.modalService.open(QrCodeModalContentComponent);
+    const modalRef = this.modalService.open(QrCodeModalContentComponent, { ariaLabelledBy: 'qr-modal-title' });
     modalRef.componentInstance.url = this.getUrl();
   }
 

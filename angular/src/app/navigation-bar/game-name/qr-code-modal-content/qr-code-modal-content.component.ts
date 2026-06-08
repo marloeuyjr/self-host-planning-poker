@@ -13,7 +13,7 @@ import QRCode from "qrcode"
 })
 export class QrCodeModalContentComponent implements AfterViewInit {
   activeModal = inject(NgbActiveModal);
-  @Input() private url?: string;
+  @Input() url?: string;
 
   @ViewChild('qrCanvas')
   private qrCanvas?: ElementRef;

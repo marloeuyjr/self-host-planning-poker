@@ -208,6 +208,14 @@ def join(data):
     info['playerId'] = player_id
     if resumed:
         info['resumed'] = True
+
+    # A player joining mid-reveal must see the round that's on the table, not an
+    # empty 'no votes' summary. Send the results to this client only — emitting to
+    # the room would re-fire the unanimous-agreement confetti for everyone.
+    if info.get('revealed'):
+        results = gm.current_results(game_id)
+        if results is not None:
+            emit('results', results, to=request.sid, json=True)
     return info
 
 
@@ -241,6 +249,7 @@ def rename_game(data):
     game_id = session['game_id']
     game_name = data['name']
 
+    gm.require_driver(game_id, session['player_id'])
     info = gm.rename_game(game_id, game_name)
     emit('info', info, to=game_id, json=True)
 

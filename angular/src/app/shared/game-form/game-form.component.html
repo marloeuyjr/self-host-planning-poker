@@ -2,7 +2,12 @@
   <form [formGroup]="formGroup">
     <div class="mb-3">
       <label for="gameName" class="form-label">{{ t('name-label') }}</label>
-      <input id="gameName" type="text" class="form-control" formControlName="name" [placeholder]="t('name-placeholder')">
+      <input id="gameName" type="text" class="form-control" formControlName="name" aria-required="true"
+             [attr.aria-invalid]="formGroup.get('name')?.invalid && formGroup.get('name')?.touched"
+             [attr.aria-describedby]="formGroup.get('name')?.invalid && formGroup.get('name')?.touched ? 'gameName-error' : null"
+             [placeholder]="t('name-placeholder')">
+      <small id="gameName-error" class="form-text text-danger"
+             *ngIf="formGroup.get('name')?.invalid && formGroup.get('name')?.touched">{{ t('name-error') }}</small>
     </div>
     <div class="mb-3">
       <label for="gameDeck" class="form-label">{{ t('deck-label') }}</label>

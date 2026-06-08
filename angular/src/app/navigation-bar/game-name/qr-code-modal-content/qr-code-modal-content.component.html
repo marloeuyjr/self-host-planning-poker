@@ -1,15 +1,14 @@
-<div class="modal-header">
-  <h4 *transloco="let t; read 'navbar.qrCodeModal'"
-      class="modal-title">
-    {{ t('title') }}
-  </h4>
-  <button *transloco="let b; read 'buttons'"
-          type="button" class="btn-close"
-          [attr.aria-label]="b('close')"
-          (click)="activeModal.dismiss()"></button>
-</div>
-<div class="modal-body d-flex justify-content-center">
-  <div class="qr-panel">
-    <canvas #qrCanvas></canvas>
+<ng-container *transloco="let t; read 'navbar.qrCodeModal'">
+  <div class="modal-header">
+    <h4 id="qr-modal-title" class="modal-title">{{ t('title') }}</h4>
+    <button *transloco="let b; read 'buttons'"
+            type="button" class="btn-close"
+            [attr.aria-label]="b('close')"
+            (click)="activeModal.dismiss()"></button>
   </div>
-</div>
+  <div class="modal-body d-flex justify-content-center">
+    <div class="qr-panel">
+      <canvas #qrCanvas role="img" [attr.aria-label]="t('canvas-alt', { url: url })"></canvas>
+    </div>
+  </div>
+</ng-container>

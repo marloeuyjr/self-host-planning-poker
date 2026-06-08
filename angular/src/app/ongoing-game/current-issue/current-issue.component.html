@@ -28,7 +28,9 @@
       </div>
     </ng-container>
     <ng-template #noIssue>
-      <span class="current-issue__hint">{{ t('none-selected') }}</span>
+      <!-- The driver gets the actionable instruction; everyone else is waiting on them,
+           not on a queue they can't drive — don't hand them a dead-end instruction. -->
+      <span class="current-issue__hint">{{ (isDriver$ | async) ? t('none-selected') : t('waiting-driver') }}</span>
     </ng-template>
   </div>
 </ng-container>

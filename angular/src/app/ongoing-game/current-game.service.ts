@@ -1,10 +1,10 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Manager, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, combineLatest, filter, map, Observable, Subject, take } from 'rxjs';
 import { BacklogState, ErrorMessage, GameInfo, GameState, Issue, RoundResults } from '../model/events';
 import { Deck, decksDict } from '../model/deck';
-import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 import { HashMap, TranslocoService } from '@ngneat/transloco';
 import { UserInformationService } from '../shared/user-info/user-information.service';
 import { ToastService } from '../shared/toast/toast.service';
@@ -63,17 +63,22 @@ export class CurrentGameService {
 
     this.socket.on('connect', () => this.connectedSubject.next(true));
     this.socket.on('disconnect', (reason) => {
+      // The persistent offline banner (connected$ === false) is the calm, operational
+      // signal while reconnection runs — don't also stack a toast, and never surface
+      // the raw socket.io reason code to users. The reason stays in the console.
       if (reason !== 'io client disconnect') {
         this.connectedSubject.next(false);
-        this.error('errors.disconnect', {reason: reason, delay: this.reconnectDelaySeconds});
       }
       console.info(`Socket disconnected. Reason is "${reason}"`);
     });
+    // Per-attempt reconnect chatter (up to ~10 events) belongs in the console — the
+    // offline banner already narrates "reconnecting…". Only the terminal outcomes
+    // (reconnected, or gave up) are worth a one-shot toast.
     this.manager.on('reconnect_attempt', (attempt: number) => {
-      this.info('reconnect.attempt', { attempt: attempt, total: this.totalAttempts });
+      console.info(`Reconnection attempt ${attempt}/${this.totalAttempts}`);
     });
     this.manager.on('reconnect_error', (err: Error) => {
-      this.error('reconnect.error', { error: err.message });
+      console.warn(`Reconnection error: ${err.message}`);
     });
     this.manager.on('reconnect_failed', () => {
       this.error('reconnect.failed', { attempts: this.totalAttempts });
@@ -285,7 +290,11 @@ export class CurrentGameService {
       if ('error' in error) {
         this.error(`errors.${error.code}`, { message: error.message });
       } else {
-        this.error(`errors.0`, { message: error });
+        // An unstructured, unexpected failure: the raw payload is for the console,
+        // never the toast (it would render "[object Object]"). Show the actionable
+        // fallback instead.
+        console.error('Unexpected socket error', error);
+        this.error('errors.0');
       }
     }
   }
@@ -313,8 +322,4 @@ export class CurrentGameService {
     })
   }
 
-}
-
-export const canActivateGame: CanActivateFn = (route: ActivatedRouteSnapshot, state: RouterStateSnapshot) => {
-  return inject(CurrentGameService).canActivate(route);
 }

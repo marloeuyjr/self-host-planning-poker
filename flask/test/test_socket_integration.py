@@ -113,6 +113,59 @@ class SocketIntegrationTestCase(unittest.TestCase):
         self.assertFalse(isinstance(ok, dict) and ok.get('error'))
         self.assertIsNotNone(_last(driver.get_received(), 'results'))
 
+    def test_rename_game_is_gated_to_the_driver(self):
+        # rename_game mutates the live session AND the durable record, so it must
+        # carry the same soft host gate as the other mutating handlers (4008).
+        game_id = self._new_backlog_game()
+        driver, _ = self._join(game_id, 'Ann')             # driver
+        guest, _ = self._join(game_id, 'Bob')              # non-driver
+        driver.get_received(); guest.get_received()
+
+        err = guest.emit('rename_game', {'name': 'Hijacked'}, callback=True)
+        self.assertIsInstance(err, dict)
+        self.assertEqual(err.get('code'), 4008)
+        self.assertEqual(app_module.gm.info(game_id)['name'], 'Sprint')   # unchanged
+
+        driver.emit('rename_game', {'name': 'Renamed'})
+        info = _last(driver.get_received(), 'info')
+        self.assertEqual(info['name'], 'Renamed')          # driver succeeds + broadcasts
+
+    def test_free_text_is_clamped_server_side(self):
+        # Names + park reasons fan out into every full-snapshot broadcast and the DB;
+        # the server clamps rather than rejects (a paste should never strand a handler).
+        game_id = self._new_backlog_game()
+        driver, _ = self._join(game_id, 'Ann')
+        driver.get_received()
+
+        driver.emit('rename_game', {'name': 'x' * 500})
+        info = _last(driver.get_received(), 'info')
+        self.assertLessEqual(len(info['name']), 120)
+
+        driver.emit('select_issue', {'index': 0})
+        driver.get_received()
+        driver.emit('park_issue', {'status': 'refinement', 'reason': 'y' * 500})
+        backlog = _last(driver.get_received(), 'backlog')
+        self.assertLessEqual(len(backlog['issues'][0]['parkReason']), 200)
+
+    def test_join_mid_reveal_sends_results_to_the_late_joiner(self):
+        # Joining while a reveal is on the table should render that round, not an
+        # empty 'no votes' summary — and only the joiner gets it (no room re-confetti).
+        game_id = self._new_backlog_game()
+        driver, _ = self._join(game_id, 'Ann')
+        guest, _ = self._join(game_id, 'Bob')
+        driver.emit('select_issue', {'index': 0})
+        driver.emit('pick_card', {'card': 5}); guest.emit('pick_card', {'card': 5})
+        driver.get_received(); guest.get_received()
+        driver.emit('reveal_cards')
+        driver.get_received(); guest.get_received()        # drain the reveal broadcast
+
+        late, _ = self._join(game_id, 'Cara', spectator=True)
+        results = _last(late.get_received(), 'results')
+        self.assertIsNotNone(results)
+        self.assertEqual(results['count'], 2)
+        # The room is not re-notified (the existing players already saw the reveal).
+        self.assertNotIn('results', _names(driver.get_received()))
+
     def test_park_advances_and_persists(self):
         game_id = self._new_backlog_game()
         driver, _ = self._join(game_id, 'Ann')
